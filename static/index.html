@@ -1,0 +1,3743 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="言笺 KotoNote" />
+  <meta name="theme-color" content="#F2F2F7" id="theme-color-meta" />
+  <title>言笺 KotoNote · 纯静态离线版（187 词）</title>
+  <style>
+:root {
+  --bg: #F2F2F7;
+  --bg-elevated: rgba(255, 255, 255, 0.84);
+  --bg-solid: #FFFFFF;
+  --bg-secondary: #EFEFF4;
+  --bg-tertiary: rgba(118, 118, 128, 0.12);
+  --text-primary: #1C1C1E;
+  --text-secondary: #636366;
+  --text-tertiary: #8E8E93;
+  --accent: #007AFF;
+  --accent-soft: rgba(0, 122, 255, 0.12);
+  --jp-accent: #5856D6;
+  --jp-soft: rgba(88, 86, 214, 0.12);
+  --zh-accent: #007AFF;
+  --zh-soft: rgba(0, 122, 255, 0.12);
+  --en-accent: #34C759;
+  --en-soft: rgba(52, 199, 89, 0.14);
+  --danger: #FF3B30;
+  --warn-bg: #FFF4E5;
+  --warn-border: #FFD8A8;
+  --warn-text: #9C4221;
+  --note-bg: #FFFDF2;
+  --note-border: #F2E6B8;
+  --note-accent: #D49B00;
+  --note-line: rgba(212, 155, 0, 0.14);
+  --border: rgba(60, 60, 67, 0.1);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.16);
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tabbar-h: 64px;
+}
+
+[data-theme="dark"] {
+  --bg: #000000;
+  --bg-elevated: rgba(28, 28, 30, 0.86);
+  --bg-solid: #1C1C1E;
+  --bg-secondary: #2C2C2E;
+  --bg-tertiary: rgba(118, 118, 128, 0.24);
+  --text-primary: #F2F2F7;
+  --text-secondary: #AEAEB2;
+  --text-tertiary: #8E8E93;
+  --accent: #0A84FF;
+  --accent-soft: rgba(10, 132, 255, 0.2);
+  --jp-accent: #7D7AFF;
+  --jp-soft: rgba(125, 122, 255, 0.2);
+  --zh-accent: #0A84FF;
+  --zh-soft: rgba(10, 132, 255, 0.2);
+  --en-accent: #30D158;
+  --en-soft: rgba(48, 209, 88, 0.2);
+  --danger: #FF453A;
+  --warn-bg: #2C1F12;
+  --warn-border: #5C3D1E;
+  --warn-text: #FFB770;
+  --note-bg: #1F1D14;
+  --note-border: #3F371E;
+  --note-accent: #FFD60A;
+  --note-line: rgba(255, 214, 10, 0.12);
+  --border: rgba(255, 255, 255, 0.12);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 20px 54px rgba(0, 0, 0, 0.7);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Hiragino Sans", "Hiragino Kaku Gothic ProN", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  min-height: 100dvh;
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 480px;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* Header */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: calc(var(--safe-top) + 10px) 18px 10px;
+  background: var(--bg-elevated);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border-bottom: 0.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brand-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #5856D6 0%, #007AFF 100%);
+  color: #FFF;
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.28);
+  flex-shrink: 0;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0.5px solid var(--border);
+  background: var(--bg-solid);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: transform 0.14s ease;
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
+}
+
+.add-pill-btn {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 18px;
+  border: none;
+  background: var(--accent);
+  color: #FFF;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 122, 255, 0.28);
+  transition: transform 0.14s ease, opacity 0.18s ease;
+}
+
+.add-pill-btn:active {
+  transform: scale(0.95);
+  opacity: 0.9;
+}
+
+/* Warning Banner */
+.env-banner {
+  display: none;
+  margin: 10px 16px 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-text);
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.env-banner.show {
+  display: block;
+}
+
+/* Category Strip */
+.cat-strip {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 2px 2px 12px;
+  scrollbar-width: none;
+}
+
+.cat-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.cat-chip {
+  flex-shrink: 0;
+  border: 0.5px solid var(--border);
+  background: var(--bg-solid);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.cat-chip.active {
+  background: var(--accent);
+  color: #FFF;
+  border-color: var(--accent);
+}
+
+/* Main Scroll Area */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 16px calc(var(--tabbar-h) + var(--safe-bottom) + 22px);
+}
+
+.view-section {
+  display: none;
+  animation: fadeIn 0.22s ease;
+}
+
+.view-section.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Common Card */
+.card {
+  background: var(--bg-solid);
+  border-radius: var(--radius-lg);
+  border: 0.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 18px;
+  margin-bottom: 14px;
+}
+
+.section-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.counter-pill {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ghost-btn {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ghost-btn:active {
+  background: var(--accent-soft);
+}
+
+/* Study Card */
+.study-card {
+  position: relative;
+  padding: 18px 20px 18px;
+  touch-action: pan-y;
+  user-select: none;
+  overflow: hidden;
+}
+
+.study-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--jp-accent), var(--zh-accent), var(--en-accent));
+  opacity: 0.9;
+}
+
+.study-cat-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.cat-pill-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.lang-block {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.14s ease, border-color 0.18s ease;
+  border: 1.5px solid transparent;
+}
+
+.lang-block:active {
+  transform: scale(0.985);
+}
+
+.lang-block.jp-block {
+  background: var(--jp-soft);
+  padding: 18px 16px 16px;
+  margin-bottom: 14px;
+}
+
+.lang-block.zh-block {
+  background: var(--bg-secondary);
+}
+
+.lang-block.en-block {
+  background: var(--bg-secondary);
+  margin-bottom: 14px;
+}
+
+.lang-block.speaking {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.lang-block.jp-block.speaking {
+  border-color: var(--jp-accent);
+  box-shadow: 0 0 0 3px var(--jp-soft);
+}
+
+.lang-block.en-block.speaking {
+  border-color: var(--en-accent);
+  box-shadow: 0 0 0 3px var(--en-soft);
+}
+
+.lang-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.lang-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-jp {
+  background: var(--jp-accent);
+  color: #FFF;
+}
+
+.badge-zh {
+  background: var(--zh-soft);
+  color: var(--zh-accent);
+}
+
+.badge-en {
+  background: var(--en-soft);
+  color: var(--en-accent);
+}
+
+.speak-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.jp-word-large {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.24;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.jp-kana {
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--jp-accent);
+}
+
+.zh-word {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.en-word {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+.muted-placeholder {
+  color: var(--text-tertiary);
+  font-size: 15px;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.study-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.nav-circle-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0.5px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.nav-circle-btn:active {
+  transform: scale(0.92);
+}
+
+.speak-all-btn {
+  flex: 1;
+  height: 44px;
+  border-radius: 22px;
+  border: none;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.speak-all-btn:active {
+  transform: scale(0.97);
+}
+
+.swipe-tip {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 10px;
+}
+
+/* Notes Card */
+.notes-card {
+  background: var(--note-bg);
+  border: 1px solid var(--note-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.notes-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notes-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--note-accent);
+  color: #FFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.notes-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.save-status {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.segmented {
+  display: inline-flex;
+  background: var(--bg-tertiary);
+  padding: 3px;
+  border-radius: 11px;
+  gap: 2px;
+}
+
+.seg-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.seg-btn.active {
+  background: var(--bg-solid);
+  color: var(--text-primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.note-textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  border: 1px solid var(--note-border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.45);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.65;
+  outline: none;
+}
+
+[data-theme="dark"] .note-textarea {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.note-textarea:focus {
+  border-color: var(--note-accent);
+}
+
+.quick-append-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.quick-input {
+  flex: 1;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--note-border);
+  background: var(--bg-solid);
+  color: var(--text-primary);
+  padding: 0 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.quick-add-btn {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: none;
+  background: var(--note-accent);
+  color: #FFF;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .quick-add-btn {
+  color: #1C1C1E;
+}
+
+.note-entries {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.note-entry {
+  background: rgba(255, 255, 255, 0.6);
+  border: 0.5px solid var(--note-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+[data-theme="dark"] .note-entry {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.note-entry-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.note-entry-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.note-entry-time {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.note-del-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 16px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+.note-del-btn:active {
+  color: var(--danger);
+}
+
+/* Recite Player */
+.recite-hero {
+  background: var(--bg-solid);
+  border-radius: 28px;
+  border: 0.5px solid var(--border);
+  box-shadow: var(--shadow-md);
+  padding: 20px;
+  margin-bottom: 14px;
+}
+
+.recite-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.timer-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.wake-chip {
+  border: 0.5px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wake-chip.on {
+  background: var(--en-soft);
+  color: var(--en-accent);
+  border-color: transparent;
+}
+
+.wave-bar-wrap {
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.wave-bar {
+  width: 3px;
+  height: 6px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.playing .wave-bar {
+  animation: wavePulse 0.9s infinite ease-in-out;
+}
+.playing .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+.playing .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+.playing .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+
+@keyframes wavePulse {
+  0%, 100% { height: 5px; opacity: 0.45; }
+  50% { height: 18px; opacity: 1; }
+}
+
+.recite-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.recite-row {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--bg-secondary);
+  border: 1.5px solid transparent;
+  transition: all 0.24s ease;
+  opacity: 0.68;
+}
+
+.recite-row.active-lang {
+  opacity: 1;
+  transform: scale(1.015);
+  background: var(--bg-solid);
+  box-shadow: var(--shadow-sm);
+}
+
+.recite-row[data-lang="jp"].active-lang {
+  border-color: var(--jp-accent);
+  background: var(--jp-soft);
+}
+
+.recite-row[data-lang="zh"].active-lang {
+  border-color: var(--zh-accent);
+  background: var(--zh-soft);
+}
+
+.recite-row[data-lang="en"].active-lang {
+  border-color: var(--en-accent);
+  background: var(--en-soft);
+}
+
+.recite-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.recite-jp-text {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.recite-kana-text {
+  font-size: 13px;
+  color: var(--jp-accent);
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+.recite-zh-text {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.recite-en-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+.order-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: 14px;
+}
+
+.order-step {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.order-step.current {
+  background: var(--accent);
+  color: #FFF;
+}
+
+.player-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 6px;
+}
+
+.ctrl-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 0.5px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.ctrl-btn:active {
+  transform: scale(0.92);
+}
+
+.play-main-btn {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #5856D6 0%, #007AFF 100%);
+  color: #FFF;
+  font-size: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(0, 122, 255, 0.35);
+}
+
+.play-main-btn:active {
+  transform: scale(0.93);
+}
+
+/* Settings Rows */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 0.5px solid var(--border);
+  gap: 10px;
+}
+
+.setting-row:last-child { border-bottom: none; padding-bottom: 2px; }
+.setting-row:first-child { padding-top: 2px; }
+
+.setting-label { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.setting-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+
+.chip-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.chip-btn {
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 11px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.chip-btn.active {
+  background: var(--accent);
+  color: #FFF;
+  border-color: var(--accent);
+}
+
+/* Lexicon View */
+.search-bar-wrap {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.search-input {
+  width: 100%;
+  height: 44px;
+  border-radius: 14px;
+  border: 0.5px solid var(--border);
+  background: var(--bg-solid);
+  color: var(--text-primary);
+  padding: 0 14px 0 38px;
+  font-size: 15px;
+  outline: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.search-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  font-size: 15px;
+  pointer-events: none;
+}
+
+.lexicon-tools {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tool-btn {
+  height: 38px;
+  border-radius: 12px;
+  border: 0.5px solid var(--border);
+  background: var(--bg-solid);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  box-shadow: var(--shadow-sm);
+}
+
+.tool-btn:active { transform: scale(0.97); }
+
+.word-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.word-item {
+  background: var(--bg-solid);
+  border-radius: 18px;
+  border: 0.5px solid var(--border);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.word-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.word-item-jp {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.word-item-kana {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--jp-accent);
+}
+
+.word-item-zh {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.word-item-en {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.word-item-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.word-item-cat-tag {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.word-item-note-tag {
+  font-size: 10px;
+  color: var(--note-accent);
+  background: var(--note-line);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.word-item-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.mini-action-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: none;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.mini-action-btn.danger:active {
+  background: rgba(255, 59, 48, 0.16);
+  color: var(--danger);
+}
+
+/* Bottom Tab Bar */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  height: calc(var(--tabbar-h) + var(--safe-bottom));
+  padding: 6px 16px calc(var(--safe-bottom) + 6px);
+  background: var(--bg-elevated);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border-top: 0.5px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  z-index: 25;
+}
+
+.tab-item {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tab-item.active {
+  color: var(--accent);
+}
+
+.tab-icon {
+  font-size: 21px;
+  line-height: 1;
+}
+
+/* Bottom Sheet */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 50;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet-backdrop.open {
+  display: flex;
+}
+
+.sheet-panel {
+  width: 100%;
+  max-width: 480px;
+  max-height: 88dvh;
+  overflow-y: auto;
+  background: var(--bg-solid);
+  border-radius: 26px 26px 0 0;
+  padding: 12px 20px calc(var(--safe-bottom) + 22px);
+  box-shadow: var(--shadow-lg);
+}
+
+.sheet-handle {
+  width: 38px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--bg-tertiary);
+  margin: 0 auto 14px;
+}
+
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sheet-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.form-group {
+  margin-bottom: 13px;
+}
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.form-input, .form-textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 11px 13px;
+  font-family: inherit;
+  font-size: 15px;
+  outline: none;
+}
+
+.form-input:focus, .form-textarea:focus {
+  border-color: var(--accent);
+  background: var(--bg-solid);
+}
+
+.form-textarea {
+  min-height: 90px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.primary-block-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: 14px;
+  border: none;
+  background: var(--accent);
+  color: #FFF;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 6px;
+}
+
+.primary-block-btn:active {
+  opacity: 0.9;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  top: calc(var(--safe-top) + 68px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-16px);
+  background: rgba(28, 28, 30, 0.92);
+  color: #FFF;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 80;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.24s ease;
+  max-width: 90vw;
+  text-align: center;
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="dark"] .toast {
+  background: rgba(242, 242, 247, 0.94);
+  color: #1C1C1E;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 42px 20px;
+  color: var(--text-tertiary);
+}
+
+.empty-state-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+/* Voice selector & repeat pill */
+.voice-select {
+  max-width: 195px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 10px;
+  outline: none;
+}
+
+.voice-select:focus {
+  border-color: var(--accent);
+}
+
+.voice-tip-box {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--jp-soft);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.voice-tip-box strong {
+  color: var(--jp-accent);
+}
+
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">言</div>
+        <div class="brand-text">
+          <span class="brand-title">言笺 KotoNote</span>
+          <span class="brand-sub" id="header-subtitle">本地词库加载中…</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="theme-toggle-btn" aria-label="切换浅色深色模式" title="切换主题">🌙</button>
+        <button class="add-pill-btn" id="open-add-btn"><span>＋</span><span>添加新词</span></button>
+      </div>
+    </header>
+
+    <!-- In-app browser warning -->
+    <div class="env-banner" id="inapp-banner">
+      ⚠️ 检测到你在微信/QQ 等内置浏览器中打开，iPhone 内置浏览器通常会禁用网页朗读。请点击右上角 <strong>···</strong> 选择「在默认浏览器（Safari）中打开」。
+    </div>
+
+    <!-- Main Scroll Content -->
+    <main class="main-content">
+      <!-- 1. 学习模式 (Study Mode) -->
+      <section class="view-section active" id="view-study">
+        <div class="cat-strip" id="study-cat-strip"></div>
+
+        <div class="section-meta">
+          <span class="counter-pill" id="study-counter">0 / 0</span>
+          <div>
+            <button class="ghost-btn" id="study-shuffle-btn">🔀 换一词</button>
+            <button class="ghost-btn" id="study-edit-btn">✎ 编辑</button>
+          </div>
+        </div>
+
+        <div class="card study-card" id="study-card">
+          <div class="study-cat-row">
+            <span class="cat-pill-tag" id="study-word-cat">未分类</span>
+          </div>
+
+          <!-- 日语置顶放大 -->
+          <div class="lang-block jp-block" id="study-jp-block" data-speak="jp">
+            <div class="lang-header">
+              <span class="lang-badge badge-jp">日 · 日本語</span>
+              <span class="speak-hint">🔊 点按朗读</span>
+            </div>
+            <div class="jp-word-large" id="study-jp-text"></div>
+            <div class="jp-kana" id="study-jp-kana"></div>
+          </div>
+
+          <!-- 中文 -->
+          <div class="lang-block zh-block" id="study-zh-block" data-speak="zh">
+            <div class="lang-header">
+              <span class="lang-badge badge-zh">中 · 中文</span>
+              <span class="speak-hint">🔊</span>
+            </div>
+            <div class="zh-word" id="study-zh-text"></div>
+          </div>
+
+          <!-- 英文 -->
+          <div class="lang-block en-block" id="study-en-block" data-speak="en">
+            <div class="lang-header">
+              <span class="lang-badge badge-en">英 · English</span>
+              <span class="speak-hint">🔊</span>
+            </div>
+            <div class="en-word" id="study-en-text"></div>
+          </div>
+
+          <div class="study-controls">
+            <button class="nav-circle-btn" id="study-prev-btn" aria-label="上一个">‹</button>
+            <button class="speak-all-btn" id="study-speak-all-btn">
+              <span>▶</span>
+              <span>朗读 日 → 中 → 英</span>
+            </button>
+            <button class="nav-circle-btn" id="study-next-btn" aria-label="下一个">›</button>
+          </div>
+          <div class="swipe-tip">左右滑动卡片切换单词 · 点击任意语言行单独发声</div>
+        </div>
+
+        <!-- 底部便签功能 -->
+        <div class="notes-card">
+          <div class="notes-header">
+            <div class="notes-title-group">
+              <span class="notes-icon">✎</span>
+              <div>
+                <div class="notes-title" id="notes-title-label">本词便签</div>
+                <div class="save-status" id="note-save-status">本地自动保存</div>
+              </div>
+            </div>
+            <div class="segmented" role="tablist">
+              <button class="seg-btn active" data-note-tab="word">本词便签</button>
+              <button class="seg-btn" data-note-tab="scratch">随手记</button>
+            </div>
+          </div>
+
+          <textarea
+            class="note-textarea"
+            id="note-textarea"
+            placeholder="随时记录例句、语境、助词搭配或记忆联想……"
+          ></textarea>
+
+          <div class="quick-append-row">
+            <input
+              type="text"
+              class="quick-input"
+              id="quick-note-input"
+              placeholder="快速追加一条带时间戳的新信息…"
+            />
+            <button class="quick-add-btn" id="quick-note-add-btn">追加</button>
+          </div>
+
+          <div class="note-entries" id="note-entries-list"></div>
+        </div>
+      </section>
+
+      <!-- 2. 背词模式 (Recite Mode) -->
+      <section class="view-section" id="view-recite">
+        <div class="cat-strip" id="recite-cat-strip"></div>
+
+        <div class="recite-hero" id="recite-hero">
+          <div class="recite-status-bar">
+            <div class="timer-display">
+              <span class="wave-bar-wrap" id="recite-wave">
+                <span class="wave-bar"></span>
+                <span class="wave-bar"></span>
+                <span class="wave-bar"></span>
+                <span class="wave-bar"></span>
+              </span>
+              <span id="recite-timer-text">15:00</span>
+            </div>
+            <button class="wake-chip" id="wake-lock-btn" title="防止屏幕自动息屏">
+              <span>☀️</span>
+              <span id="wake-lock-label">屏幕常亮</span>
+            </button>
+          </div>
+
+          <div class="order-indicator">
+            <span class="order-step" data-step="jp">1. 日语 ×2</span>
+            <span>→</span>
+            <span class="order-step" data-step="zh">2. 中文</span>
+            <span>→</span>
+            <span class="order-step" data-step="en">3. 英文</span>
+          </div>
+
+          <div class="recite-stage">
+            <div class="recite-row" data-lang="jp" id="recite-row-jp">
+              <div class="recite-row-top">
+                <span class="lang-badge badge-jp" id="recite-jp-badge">日 · ja-JP ×2</span>
+                <span class="counter-pill" id="recite-counter" style="padding:2px 9px;font-size:11px;">0 / 0</span>
+              </div>
+              <div class="recite-jp-text" id="recite-jp-text"></div>
+              <div class="recite-kana-text" id="recite-kana-text"></div>
+            </div>
+
+            <div class="recite-row" data-lang="zh" id="recite-row-zh">
+              <div class="recite-row-top">
+                <span class="lang-badge badge-zh">中 · zh-CN</span>
+              </div>
+              <div class="recite-zh-text" id="recite-zh-text"></div>
+            </div>
+
+            <div class="recite-row" data-lang="en" id="recite-row-en">
+              <div class="recite-row-top">
+                <span class="lang-badge badge-en">英 · en-US</span>
+              </div>
+              <div class="recite-en-text" id="recite-en-text"></div>
+            </div>
+          </div>
+
+          <div class="player-controls">
+            <button class="ctrl-btn" id="recite-prev-btn" aria-label="上一词">⏮</button>
+            <button class="play-main-btn" id="recite-play-btn" aria-label="开始或暂停朗读">▶</button>
+            <button class="ctrl-btn" id="recite-next-btn" aria-label="下一词">⏭</button>
+          </div>
+        </div>
+
+        <!-- 播放设置卡片 -->
+        <div class="card">
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">播放顺序</div>
+              <div class="setting-sub">顺序循环或智能洗牌乱序</div>
+            </div>
+            <div class="segmented">
+              <button class="seg-btn active" data-order="sequential">顺序</button>
+              <button class="seg-btn" data-order="shuffle">乱序</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">播放时长</div>
+              <div class="setting-sub">倒计时归零自动停止</div>
+            </div>
+            <div class="chip-group" id="duration-chips">
+              <button class="chip-btn active" data-min="15">15min</button>
+              <button class="chip-btn" data-min="30">30min</button>
+              <button class="chip-btn" data-min="45">45min</button>
+              <button class="chip-btn" data-min="60">1h</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">朗读语速</div>
+              <div class="setting-sub">调整日中英三语播报节奏</div>
+            </div>
+            <div class="chip-group" id="rate-chips">
+              <button class="chip-btn" data-rate="0.8">0.8x</button>
+              <button class="chip-btn active" data-rate="1.0">1.0x</button>
+              <button class="chip-btn" data-rate="1.2">1.2x</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">语种间隔</div>
+              <div class="setting-sub">日×2 / 中 / 英 之间停顿时长</div>
+            </div>
+            <div class="chip-group" id="pause-chips">
+              <button class="chip-btn" data-pause="2.0">2.0s</button>
+              <button class="chip-btn active" data-pause="2.5">2.5s</button>
+              <button class="chip-btn" data-pause="3.0">3.0s</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">日语发音人</div>
+              <div class="setting-sub">自动优选自然神经网络语音</div>
+            </div>
+            <select id="jp-voice-select" class="voice-select" aria-label="选择日语发音人">
+              <option value="">自动优选（最自然）</option>
+            </select>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">重置计时</div>
+              <div class="setting-sub">将当前剩余时间恢复为所选时长</div>
+            </div>
+            <button class="chip-btn" id="reset-timer-btn">↺ 重置</button>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">iPhone 语音自检</div>
+              <div class="setting-sub">请确保关闭静音开关并在 Safari 打开</div>
+            </div>
+            <button class="chip-btn" id="test-voice-btn">🔊 测试发声</button>
+          </div>
+          <div class="voice-tip-box">
+            <strong>💡 让 iPhone 日语发音更自然：</strong>前往 iPhone <strong>设置 → 辅助功能 → 朗读内容 → 声音 → 日语</strong>，下载 <strong>Kyoko（优化版）</strong>、<strong>Otoya（优化版）</strong> 或 <strong>Hattori</strong> 后重开 Safari，本软件会自动优先使用高音质自然人声。
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. 术语库 (Lexicon) -->
+      <section class="view-section" id="view-lexicon">
+        <div class="search-bar-wrap">
+          <span class="search-icon">🔍</span>
+          <input
+            type="search"
+            class="search-input"
+            id="lexicon-search"
+            placeholder="搜索日语、假名、中文、英文、分类或便签…"
+          />
+        </div>
+
+        <div class="cat-strip" id="lexicon-cat-strip"></div>
+
+        <div class="lexicon-tools">
+          <button class="tool-btn" id="open-batch-btn">📥 批量导入</button>
+          <button class="tool-btn" id="export-tsv-btn">📊 导出表格</button>
+          <button class="tool-btn" id="export-json-btn">📤 备份JSON</button>
+          <button class="tool-btn" id="import-json-btn">🔄 恢复备份</button>
+          <input type="file" id="json-file-input" accept=".json,application/json" style="display:none" />
+        </div>
+
+        <div class="section-meta" style="margin-bottom:10px;">
+          <span class="counter-pill" id="lexicon-count-pill">加载中…</span>
+          <button class="ghost-btn" id="lexicon-add-btn">＋ 新增术语</button>
+        </div>
+
+        <div class="word-list" id="word-list"></div>
+      </section>
+    </main>
+
+    <!-- Bottom Tab Navigation -->
+    <nav class="tab-bar" aria-label="主导航">
+      <button class="tab-item active" data-tab="study">
+        <span class="tab-icon">📖</span>
+        <span>学习模式</span>
+      </button>
+      <button class="tab-item" data-tab="recite">
+        <span class="tab-icon">🎧</span>
+        <span>背词模式</span>
+      </button>
+      <button class="tab-item" data-tab="lexicon">
+        <span class="tab-icon">🗂️</span>
+        <span>术语库</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Add / Edit Word Bottom Sheet -->
+  <div class="sheet-backdrop" id="word-sheet">
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title" id="word-sheet-title">添加新词条</div>
+        <button class="ghost-btn" id="close-word-sheet">关闭</button>
+      </div>
+      <form id="word-form">
+        <input type="hidden" id="edit-word-id" value="" />
+        <div class="form-group">
+          <label class="form-label" for="input-jp">日语 (日本語)</label>
+          <input type="text" class="form-input" id="input-jp" placeholder="例：視野角" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="input-kana">读音 / 假名（可选）</label>
+          <input type="text" class="form-input" id="input-kana" placeholder="例：しやかく" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="input-zh">中文</label>
+          <input type="text" class="form-input" id="input-zh" placeholder="例：视角" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="input-en">英文 (English)</label>
+          <input type="text" class="form-input" id="input-en" placeholder="例：View Angles" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="input-category">分类标签（可选，可直接输入新分类）</label>
+          <input type="text" class="form-input" id="input-category" list="category-datalist" placeholder="例：显示面板与光学触控" />
+          <datalist id="category-datalist"></datalist>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="input-note">备注 / 初始便签（可选）</label>
+          <textarea class="form-textarea" id="input-note" placeholder="可填写例句、场景说明或记忆点…"></textarea>
+        </div>
+        <button type="submit" class="primary-block-btn" id="save-word-submit">保存到本地词库</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Batch Import Bottom Sheet -->
+  <div class="sheet-backdrop" id="batch-sheet">
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title">批量导入到本地词库</div>
+        <button class="ghost-btn" id="close-batch-sheet">关闭</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">导入格式</label>
+        <div class="segmented" style="width:100%;display:grid;grid-template-columns:1fr 1fr;">
+          <button type="button" class="seg-btn active" data-batch-fmt="tsv">表格粘贴（中 ⇥ 英 ⇥ 日 ⇥ 备注）</button>
+          <button type="button" class="seg-btn" data-batch-fmt="pipe">竖线分隔（日 | 中 | 英 | 假名）</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="batch-category">导入归属分类</label>
+        <input type="text" class="form-input" id="batch-category" list="category-datalist" value="新增术语" placeholder="例：显示面板与光学触控" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="batch-textarea" id="batch-hint-label">
+          直接从 Excel / WPS / 飞书复制粘贴（自动识别多行备注与去重合并）：
+        </label>
+        <textarea
+          class="form-textarea"
+          id="batch-textarea"
+          style="min-height:160px;"
+          placeholder="视角	View Angles	視野角（しやかく）	&#10;对比度	Contrast Ratio	コントラスト比（コントラストひ）	"
+        ></textarea>
+      </div>
+      <button class="primary-block-btn" id="confirm-batch-btn">一键导入词库</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+
+window.KotoAPI = (() => {
+  'use strict';
+
+  const SEED_ITEMS = [{"jp": "パラメータ", "kana": "", "zh": "参数", "en": "parameter", "category": "测试与硬件通用", "note": "（日常语境的引申义），表示对事物的限制条件"}, {"jp": "同等", "kana": "どうとう", "zh": "同等", "en": "equal / equivalent", "category": "测试与硬件通用", "note": ""}, {"jp": "バイアス", "kana": "", "zh": "偏差/偏置/偏见", "en": "bias", "category": "测试与硬件通用", "note": "统计学、机器学习中常译「偏差」，AI大模型语境常译「偏置」，社会语境中一般译为「偏见」。"}, {"jp": "縮小", "kana": "しゅくしょう", "zh": "缩小；缩小规模", "en": "reduce / shrink / scale down", "category": "测试与硬件通用", "note": ""}, {"jp": "グラファイト/黒鉛（こくえん）", "kana": "", "zh": "石墨", "en": "graphite", "category": "测试与硬件通用", "note": ""}, {"jp": "変化（へんか）/バリエーション", "kana": "", "zh": "变化；变动；", "en": "variation", "category": "测试与硬件通用", "note": ""}, {"jp": "ミリワット", "kana": "", "zh": "毫瓦 (mW)", "en": "milliwatt (mW)", "category": "测试与硬件通用", "note": ""}, {"jp": "", "kana": "", "zh": "显示驱动芯片", "en": "DDIC = Display Driver IC", "category": "测试与硬件通用", "note": "屏幕核心驱动 IC，含源极 / 栅极驱动、TDDI 触控显示一体芯片"}, {"jp": "", "kana": "", "zh": "动态工作功耗 / 有源功耗", "en": "Active Power", "category": "测试与硬件通用", "note": "DDIC active power：显示驱动芯片正常点亮画面、刷新像素时的动态运行功耗，单位 mW（毫瓦）"}, {"jp": "消費電力", "kana": "しょうひでんりょく", "zh": "功耗", "en": "power consumption", "category": "测试与硬件通用", "note": "Active power consumption\n动态工作功耗 = DDIC active power\n屏幕亮屏刷新、正常显示画面时驱动芯片产生的功耗"}, {"jp": "解像度", "kana": "", "zh": "分辨率/清晰率", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ディスプレー", "kana": "", "zh": "显示器", "en": "display", "category": "测试与硬件通用", "note": ""}, {"jp": "組電池/電池パック", "kana": "", "zh": "组电池", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "単電池", "kana": "", "zh": "单电池", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "過充電試験", "kana": "", "zh": "过充试验", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "フェイル", "kana": "", "zh": "故障", "en": "fail", "category": "测试与硬件通用", "note": ""}, {"jp": "シャットダウン", "kana": "", "zh": "关机", "en": "shutdown", "category": "测试与硬件通用", "note": ""}, {"jp": "パラメーター", "kana": "", "zh": "参数/变量", "en": "parameter", "category": "测试与硬件通用", "note": ""}, {"jp": "インターフェース", "kana": "", "zh": "接口", "en": "interface", "category": "测试与硬件通用", "note": ""}, {"jp": "検証", "kana": "けんしょう", "zh": "验证", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "単体", "kana": "たんたい〇", "zh": "单体", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "デフォルト値", "kana": "", "zh": "默认值", "en": "default", "category": "测试与硬件通用", "note": ""}, {"jp": "", "kana": "", "zh": "延迟", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "リアルタイム性", "kana": "", "zh": "实时性", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ドッキング", "kana": "", "zh": "对接", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "タイピング", "kana": "", "zh": "输入", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "プロセッサ/CPU", "kana": "", "zh": "处理器", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ストレージ", "kana": "", "zh": "储存", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ベンダ", "kana": "", "zh": "供应商", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "スナップ", "kana": "", "zh": "卡扣/按扣", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "縦線/横線", "kana": "", "zh": "竖线/横线", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "スペック", "kana": "", "zh": "规格、参数", "en": "spec", "category": "测试与硬件通用", "note": ""}, {"jp": "アイコン", "kana": "", "zh": "图标", "en": "icon", "category": "测试与硬件通用", "note": ""}, {"jp": "ドロップテスト/落下試験", "kana": "", "zh": "跌落测试", "en": "drop", "category": "测试与硬件通用", "note": ""}, {"jp": "微落下試験", "kana": "", "zh": "微跌测试", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "気密性", "kana": "", "zh": "气密", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "図面", "kana": "", "zh": "图纸", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "シールド", "kana": "", "zh": "屏蔽罩/保护罩", "en": "EMI～", "category": "测试与硬件通用", "note": ""}, {"jp": "ファブリック・導電布", "kana": "どうでんふ", "zh": "导电布", "en": "conductive fabric", "category": "测试与硬件通用", "note": ""}, {"jp": "グラファイトシート", "kana": "", "zh": "石墨片", "en": "graphite", "category": "测试与硬件通用", "note": ""}, {"jp": "敷き詰める", "kana": "", "zh": "铺满; 布满; 铺满整个表面", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "記載⓪", "kana": "", "zh": "写上", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "仕様", "kana": "しよう", "zh": "规格；方式；方法", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "引き延ばす効果", "kana": "", "zh": "延伸效果（叠层侧视图用）", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "フレキシブルプリント配線板", "kana": "", "zh": "柔性线路板", "en": "Flexible Printed Circuits", "category": "测试与硬件通用", "note": ""}, {"jp": "端", "kana": "はし⓪", "zh": "边缘；末端；起点；", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "全張り", "kana": "ぜんばっり", "zh": "全贴合", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "空気抜け", "kana": "", "zh": "排气；抽气；放气", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "追記", "kana": "ついき⓪", "zh": "追加记录；补充说明", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "コーティング", "kana": "", "zh": "涂层；镀膜；覆膜", "en": "coating", "category": "测试与硬件通用", "note": ""}, {"jp": "クラック", "kana": "", "zh": "裂缝", "en": "crack", "category": "测试与硬件通用", "note": ""}, {"jp": "スジ", "kana": "", "zh": "条纹", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "勝手に再起動かかる", "kana": "", "zh": "自动重启", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "電源が付かなくなった", "kana": "", "zh": "无法开机", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "フリーズする", "kana": "", "zh": "卡死/卡住", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "傷", "kana": "", "zh": "划痕", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "初期化", "kana": "", "zh": "恢复出厂设置", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "クロス検証", "kana": "", "zh": "交叉验证", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "BTBインターフェース", "kana": "", "zh": "BTB接口", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "コンポーネント", "kana": "", "zh": "组件", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "バックライトは点灯する", "kana": "", "zh": "背光点亮", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ビルド番号", "kana": "", "zh": "版本号", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "通常の端末", "kana": "", "zh": "正常设备/机器", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "電源投入不可", "kana": "", "zh": "无法上电", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "電源落ちる / 電源が切れる", "kana": "", "zh": "断电", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "筐体⓪", "kana": "きょうたい", "zh": "外壳/壳体", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "水没検知シール / すいぼつ / 浸水ラベル / しんすい⓪", "kana": "", "zh": "进水/防水标签", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "~にじみ無し", "kana": "", "zh": "无渗色", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "勘合⓪", "kana": "かんごう", "zh": "对照/核对/验证", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "端子①", "kana": "たんし", "zh": "接头；接线端；端子", "en": "", "category": "测试与硬件通用", "note": "CN=pin脚"}, {"jp": "焼き付き", "kana": "", "zh": "烧屏", "en": "Screen Burn-in", "category": "测试与硬件通用", "note": ""}, {"jp": "デモ画面", "kana": "", "zh": "演示画面", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "黄色まだら / 黄色かかった", "kana": "", "zh": "黄斑 / 泛黄", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "お客様の了承", "kana": "", "zh": "顾客/客户同意", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "色味③", "kana": "いろみ", "zh": "色深/色彩", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "追加解析に回す", "kana": "", "zh": "进一步分析", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "症状はDisplayについて回る", "kana": "", "zh": "现象随屏走", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "インフォ", "kana": "", "zh": "咨询窗口", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "たらいまわしにされた", "kana": "", "zh": "遭到推诿", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "預かり修理に納得されない", "kana": "", "zh": "（客户）不接受寄存维修", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "テクニカルアドバイザー", "kana": "", "zh": "技术顾问", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "バイブ", "kana": "", "zh": "震动", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "まえだおし⓪  前倒しする・前倒しになる / 繰り上げる・早める", "kana": "", "zh": "提前", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "オープン", "kana": "", "zh": "开路（膜缺失 / 刻穿 / 过孔处断裂）", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "仕組み", "kana": "しくみ⓪", "zh": "计划，安排", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ファーム・ / ファームウエア", "kana": "", "zh": "固件", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "調整がしょうじたときに", "kana": "", "zh": "", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "セット側", "kana": "", "zh": "整机", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "銅シート・銅のパーツ（零件；部件；配件）", "kana": "", "zh": "铜片", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "けいじょう⓪", "kana": "", "zh": "形状", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ワースト条件", "kana": "", "zh": "最坏情况/最差条件", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "性能比較", "kana": "", "zh": "", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "機種①②", "kana": "きしゅ", "zh": "机型", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "あくまでも", "kana": "", "zh": "终究", "en": "", "category": "测试与硬件通用", "note": "これはあくまでもネット上で収集した情報です。"}, {"jp": "ミドルフレーム", "kana": "", "zh": "中框", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ソリューション", "kana": "", "zh": "解决方案", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "逆算", "kana": "ぎゃくさん⓪", "zh": "倒算；倒推", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "バックプレート", "kana": "", "zh": "背板", "en": "backing plate", "category": "测试与硬件通用", "note": ""}, {"jp": "視野角", "kana": "しやかく", "zh": "视角", "en": "View Angles", "category": "显示面板与光学触控", "note": ""}, {"jp": "コントラスト比", "kana": "コントラストひ", "zh": "对比度", "en": "Contrast Ratio", "category": "显示面板与光学触控", "note": ""}, {"jp": "応答時間", "kana": "おうとうじかん", "zh": "响应时间", "en": "Response Time", "category": "显示面板与光学触控", "note": ""}, {"jp": "斜め色シフト", "kana": "ななめいろシフト", "zh": "偏角色移/侧视色偏", "en": "Off-angle color shift", "category": "显示面板与光学触控", "note": ""}, {"jp": "色再現範囲（いろさいげんはんい） / カラーガマット", "kana": "", "zh": "色域", "en": "Color Gamut", "category": "显示面板与光学触控", "note": ""}, {"jp": "黒レベル", "kana": "くろレベル", "zh": "黑色亮度/黑位", "en": "Black", "category": "显示面板与光学触控", "note": ""}, {"jp": "輝度減衰", "kana": "きどげんすい", "zh": "亮度衰减", "en": "Luminance Decay", "category": "显示面板与光学触控", "note": ""}, {"jp": "色均一性", "kana": "いろきんいつせい", "zh": "色彩均匀度", "en": "Color uniformity", "category": "显示面板与光学触控", "note": ""}, {"jp": "寿命", "kana": "じゅみょう", "zh": "使用寿命", "en": "Life Time", "category": "显示面板与光学触控", "note": ""}, {"jp": "焼き付き", "kana": "やきつき", "zh": "图像残留/烧屏", "en": "Image Sticking", "category": "显示面板与光学触控", "note": ""}, {"jp": "クロストーク", "kana": "", "zh": "串扰", "en": "Crosstalk", "category": "显示面板与光学触控", "note": ""}, {"jp": "常時表示（じょうじひょうじ） / AOD", "kana": "", "zh": "息屏显示", "en": "AOD（Always On Display）", "category": "显示面板与光学触控", "note": ""}, {"jp": "OLEDアレイ", "kana": "", "zh": "有机发光二极管阵列", "en": "OLED Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "パッシブマトリクスOLED", "kana": "", "zh": "被动矩阵有机发光二极管", "en": "Passive Matrix OLED (PMOLED)", "category": "显示面板与光学触控", "note": ""}, {"jp": "アクティブマトリクスOLED", "kana": "", "zh": "主动矩阵有机发光二极管", "en": "Active Matrix OLED (AMOLED)", "category": "显示面板与光学触控", "note": ""}, {"jp": "薄膜トランジスタ", "kana": "", "zh": "薄膜晶体管", "en": "Thin Film Transistor (TFT)", "category": "显示面板与光学触控", "note": ""}, {"jp": "ピクセルアレイ", "kana": "", "zh": "像素阵列", "en": "Pixel Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "サブピクセル", "kana": "", "zh": "子像素", "en": "Sub-pixel", "category": "显示面板与光学触控", "note": ""}, {"jp": "ペンタイル配列", "kana": "", "zh": "Pentile排列", "en": "Pentile Matrix", "category": "显示面板与光学触控", "note": ""}, {"jp": "ストライプ配列", "kana": "", "zh": "条纹排列", "en": "Stripe Arrangement", "category": "显示面板与光学触控", "note": ""}, {"jp": "デルタ配列", "kana": "", "zh": "Delta排列", "en": "Delta Arrangement", "category": "显示面板与光学触控", "note": ""}, {"jp": "有機発光層", "kana": "", "zh": "有机发光层", "en": "Organic Emitting Layer", "category": "显示面板与光学触控", "note": ""}, {"jp": "正孔輸送層", "kana": "", "zh": "空穴传输层", "en": "Hole Transport Layer (HTL)", "category": "显示面板与光学触控", "note": ""}, {"jp": "電子輸送層", "kana": "", "zh": "电子传输层", "en": "Electron Transport Layer (ETL)", "category": "显示面板与光学触控", "note": ""}, {"jp": "アノード", "kana": "", "zh": "阳极", "en": "Anode", "category": "显示面板与光学触控", "note": ""}, {"jp": "カソード", "kana": "", "zh": "阴极", "en": "Cathode", "category": "显示面板与光学触控", "note": ""}, {"jp": "基板", "kana": "", "zh": "衬底", "en": "Substrate", "category": "显示面板与光学触控", "note": ""}, {"jp": "蒸着", "kana": "", "zh": "蒸镀", "en": "Vacuum Thermal Evaporation", "category": "显示面板与光学触控", "note": ""}, {"jp": "インクジェット印刷", "kana": "", "zh": "喷墨打印", "en": "Inkjet Printing", "category": "显示面板与光学触控", "note": ""}, {"jp": "フレキシブルOLEDアレイ", "kana": "", "zh": "柔性OLED阵列", "en": "Flexible OLED Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "折りたたみ式OLEDアレイ", "kana": "", "zh": "折叠OLED阵列", "en": "Foldable OLED Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "ウェアラブルOLEDアレイ", "kana": "", "zh": "可穿戴OLED阵列", "en": "Wearable OLED Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "OLEDセンシングアレイ", "kana": "", "zh": "OLED传感阵列", "en": "OLED Sensing Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "光遺伝学刺激アレイ", "kana": "", "zh": "光遗传刺激阵列", "en": "Optogenetic Stimulation Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "歩留まり", "kana": "", "zh": "良率", "en": "Yield", "category": "显示面板与光学触控", "note": ""}, {"jp": "開口率", "kana": "", "zh": "开口率", "en": "Aperture Ratio", "category": "显示面板与光学触控", "note": ""}, {"jp": "近眼表示", "kana": "", "zh": "近眼显示", "en": "Near-eye Display", "category": "显示面板与光学触控", "note": ""}, {"jp": "CNCカッティング", "kana": "", "zh": "CNC切割", "en": "CNC Cutting (Computer Numerical Control Cutting)", "category": "显示面板与光学触控", "note": "CNC切割通过预编程的加工代码，用自动化设备，控制切割刀具/高能束（激光、等离子等）按照设定路径自动切割金属、塑料、木材、玻璃、复合材料等各类材料"}, {"jp": "防指紋コーティング", "kana": "ぼうしもんコーティング", "zh": "抗指纹涂层 / AF 镀膜", "en": "anti-fingerprint coating / AF coating", "category": "显示面板与光学触控", "note": "日语显示 / 电子行业中，「指紋防止」是最常用的标准译法；\n「アンチフィンガープリント」为片假名音译，多用于技术资料和产品规格书；\n「防指紋」（ぼうしもん）也是常见写法，多用于镀膜、涂层相关语境"}, {"jp": "汚れ防止コート / アンチスマッジ", "kana": "", "zh": "防污膜/玻璃（疏水防尘）", "en": "Anti-Smudge/AS", "category": "显示面板与光学触控", "note": ""}, {"jp": "アンチリフレクション / 反射防止コーティング", "kana": "", "zh": "减反射膜 / AR 膜/抗反增透膜", "en": "Anti-Reflection coating (AR)", "category": "显示面板与光学触控", "note": ""}, {"jp": "反射防止複合コート", "kana": "", "zh": "AR 复合镀膜", "en": "AR composite coating", "category": "显示面板与光学触控", "note": ""}, {"jp": "反射防止処理", "kana": "", "zh": "减反射处理", "en": "Anti-reflection treatment", "category": "显示面板与光学触控", "note": ""}, {"jp": "AR+AF 二層コーティング", "kana": "", "zh": "AR+AF 双层膜", "en": "AR+AF coating", "category": "显示面板与光学触控", "note": ""}, {"jp": "", "kana": "", "zh": "防眩光", "en": "Anti-Glare/AG", "category": "显示面板与光学触控", "note": ""}, {"jp": "相関色温度", "kana": "そうかんしょくおんど", "zh": "色温", "en": "Correlated Color Temperature（CCT）", "category": "显示面板与光学触控", "note": ""}, {"jp": "色ずれ、カラーシフト", "kana": "", "zh": "色偏（通用）", "en": "Color shift", "category": "显示面板与光学触控", "note": ""}, {"jp": "黄変", "kana": "おうへん", "zh": "底色偏黄 / 黄变", "en": "Yellow tint", "category": "显示面板与光学触控", "note": ""}, {"jp": "TCP", "kana": "テープキャリアパッケージ", "zh": "TCP（载带封装，驱动 IC 柔性载带）", "en": "TCP（Tape Carrier Package）", "category": "显示面板与光学触控", "note": ""}, {"jp": "TN：ツイステッドネマチック", "kana": "", "zh": "扭曲向列型液晶", "en": "TN：Twisted Nematic", "category": "显示面板与光学触控", "note": "基础液晶材质，成本低、响应快，但可视角度差，早年电脑显示器、低端屏常用。"}, {"jp": "STN：スーパーツイステッドネマチック", "kana": "", "zh": "超扭曲向列型液晶", "en": "STN：Super Twisted Nematic", "category": "显示面板与光学触控", "note": "扭曲角度更大，对比度优于 TN，多用于老式电子表、工控单色小屏。"}, {"jp": "ヨウ素", "kana": "", "zh": "碘", "en": "iodine", "category": "显示面板与光学触控", "note": ""}, {"jp": "TAC フィルム", "kana": "", "zh": "TAC 膜", "en": "Triacetate Cellulose Film", "category": "显示面板与光学触控", "note": "三醋酸纤维素薄膜，LCD 偏光片核心基材，表面可做各类功能涂层"}, {"jp": "AG（防眩）", "kana": "", "zh": "AG 防眩膜", "en": "Anti-Glare", "category": "显示面板与光学触控", "note": "表面微粒子凹凸结构，散射外界强光，消除屏幕反光刺眼问题"}, {"jp": "LR 低反射", "kana": "", "zh": "LR 低反射", "en": "Low Reflection", "category": "显示面板与光学触控", "note": "降低界面反射率，减少环境倒影，提升户外可视性"}, {"jp": "CHC ハードコート", "kana": "", "zh": "CHC 透明硬化", "en": "Clear Hard Coating", "category": "显示面板与光学触控", "note": "高透明硬质涂层，提升膜层耐刮擦、耐磨性能，保护面板"}, {"jp": "AR 反射防止膜", "kana": "", "zh": "AR 防反射膜", "en": "Anti-Reflection", "category": "显示面板与光学触控", "note": "多层光学干涉涂层，大幅降低屏幕反射，对比度更高"}, {"jp": "AG+LR 複合フィルム", "kana": "", "zh": "AG+LR 复合膜", "en": "Anti-Glare + Low Reflection", "category": "显示面板与光学触控", "note": "同时具备防眩光、低反射双重效果，多用于电视大屏"}, {"jp": "CHC+LR 複合フィルム", "kana": "", "zh": "CHC+LR 复合膜", "en": "Clear Hard Coating + Low Reflection", "category": "显示面板与光学触控", "note": "兼顾耐磨抗刮与低反射，适配手机、平板小型终端"}, {"jp": "TN モード", "kana": "ツイステッドネマチック", "zh": "扭曲向列相模式（普通显示模式）", "en": "Twisted Nematic，TN", "category": "显示面板与光学触控", "note": "成本低、响应速度快；缺点是可视角度极小，侧看会偏色发白，多用于老式显示器、低端工控屏"}, {"jp": "IPS モード", "kana": "", "zh": "共面开关模式（广角显示）", "en": "In-Plane Switching，IPS", "category": "显示面板与光学触控", "note": "色彩均匀、左右上下视角均衡，色彩还原优秀；广泛用于电脑显示器、笔记本、监控屏"}, {"jp": "FFS モード", "kana": "", "zh": "场边缘开关模式", "en": "Fringe-Field Switching，FFS", "category": "显示面板与光学触控", "note": "IPS 衍生改良型，透光率更高、功耗更低，是手机 LCD 屏幕主流技术"}, {"jp": "VA モード", "kana": "", "zh": "垂直取向模式", "en": "Vertical Alignment，VA", "category": "显示面板与光学触控", "note": "原生对比度极高、黑色纯净度好；多用于液晶电视、高端曲面显示器，垂直视角略弱于 IPS"}, {"jp": "双棱镜片贴合", "kana": "", "zh": "POP", "en": "Prism on Prism", "category": "显示面板与光学触控", "note": "两层棱镜片背靠背贴合，三角棱纹相对"}, {"jp": "棱镜片贴扩散片", "kana": "", "zh": "POD", "en": "Prism on Diffuser", "category": "显示面板与光学触控", "note": "棱镜片微结构朝上，下方复合扩散片基底"}, {"jp": "扩散片贴棱镜片", "kana": "", "zh": "DOP", "en": "Diffuser on Prism", "category": "显示面板与光学触控", "note": "扩散粒子层朝上，底层复合棱镜片"}, {"jp": "波打ち（なみうち）、ウェーブ", "kana": "", "zh": "波浪纹、水波纹", "en": "waving", "category": "显示面板与光学触控", "note": "光学膜 / 导光板 / 偏光片出现连续波浪状起伏外观不良，大面积周期性凹凸纹路"}, {"jp": "シワ、皺", "kana": "しわ", "zh": "褶皱、起皱", "en": "wrinkle", "category": "显示面板与光学触控", "note": "光学膜 / 偏光片 / 导光板外观不良，膜材表面出现波浪状凹凸纹路"}, {"jp": "ワーク", "kana": "", "zh": "工件 / 待贴合基板", "en": "Work / Workpiece", "category": "显示面板与光学触控", "note": ""}, {"jp": "ステージ", "kana": "", "zh": "载台、工装平台", "en": "Stage", "category": "显示面板与光学触控", "note": ""}, {"jp": "ギャップ", "kana": "", "zh": "间隙", "en": "GAP", "category": "显示面板与光学触控", "note": ""}, {"jp": "OCA 光学粘着フィルム", "kana": "", "zh": "固态光学胶", "en": "OCA (Optical Clear Adhesive)", "category": "显示面板与光学触控", "note": ""}, {"jp": "OCR 光学透明樹脂", "kana": "", "zh": "液态光学胶", "en": "OCR (Optical Clear Resin)", "category": "显示面板与光学触控", "note": ""}, {"jp": "パーティクル、異物", "kana": "", "zh": "微粒、异物、尘点", "en": "particle", "category": "显示面板与光学触控", "note": ""}, {"jp": "チャンバー", "kana": "", "zh": "腔体、真空腔", "en": "chamber", "category": "显示面板与光学触控", "note": "设备密闭真空工作腔，贴合、脱泡、镀膜、液晶灌注设备核心密闭空间"}, {"jp": "BM ブラックマトリックス", "kana": "", "zh": "BM 黑矩阵", "en": "BM（Black Matrix）", "category": "显示面板与光学触控", "note": "面板边缘黑色遮光油墨，印刷在彩膜基板四周，遮挡像素漏光、分隔 RGB 子像素，印刷后会形成台阶段差；\n黑色遮光网格层，隔绝相邻像素漏光，避免像素混色、画面发雾，同时遮挡边缘走线，防止透光干扰显示效果。"}, {"jp": "ベゼル、額縁", "kana": "", "zh": "边框 / 遮蔽围边", "en": "Bezel", "category": "显示面板与光学触控", "note": "盖板、触控屏边缘油墨围边，或屏幕金属窄边框；印刷层存在厚度，在贴合面形成凹凸段差"}, {"jp": "ムラ", "kana": "", "zh": "色斑、亮度不均、云斑", "en": "Mura", "category": "显示面板与光学触控", "note": "屏幕点亮后出现明暗不均、色块、雾状色差，是 LCD/OLED 最典型光学不良统称"}, {"jp": "VSP", "kana": "", "zh": "触控正信号", "en": "VSP", "category": "显示面板与光学触控", "note": "Touch Sensor Positive，触控差分正信号；\n触控 IC 通过 VSP、VSN 差分信号扫描 ITO 感应线路，识别触摸点位。"}, {"jp": "VSN", "kana": "", "zh": "触控负信号", "en": "VSN", "category": "显示面板与光学触控", "note": "Touch Sensor Negative，触控差分负信号"}, {"jp": "VDD", "kana": "", "zh": "供电电源正极", "en": "VDD", "category": "显示面板与光学触控", "note": "芯片、触控线路工作供电电压；给触控 IC、Sensor 回路提供工作电压。"}, {"jp": "TVS", "kana": "", "zh": "瞬态抑制二极管", "en": "TVS", "category": "显示面板与光学触控", "note": "防静电 ESD 保护元器件"}, {"jp": "GND", "kana": "", "zh": "接地、地电位", "en": "GND", "category": "显示面板与光学触控", "note": "地、电源负极参考电位；对地阻抗 = 线路与 GND 之间的电阻值；\n电路零电位基准点，所有电压的参考零点；屏蔽膜、铁框、IC、FPC 走线均需连接 GND，用于泄放静电、EMI 噪声，稳定触控 TX/RX 与 VCOM 电位，避免跳点、闪屏。"}, {"jp": "DSTB", "kana": "", "zh": "深度触控检测缓冲信号", "en": "DSTB", "category": "显示面板与光学触控", "note": "搭配压力触控方案的检测缓冲信号线"}, {"jp": "レポートレート", "kana": "レポートレート", "zh": "报点率", "en": "Report Rate", "category": "显示面板与光学触控", "note": "触控芯片每秒向主控端上报触控坐标点位的次数，单位 Hz，数值越高触控跟手性越好，游戏场景对该指标要求极高"}, {"jp": "治具（ジグ）、固定冶具", "kana": "", "zh": "治具、工装夹具", "en": "Jig / Fixture", "category": "显示面板与光学触控", "note": "生产、测试设备中用于固定、定位工件的专用工装，保障对位精度与操作稳定性"}, {"jp": "送信電極", "kana": "そうしんでんきょく", "zh": "发射电极（TX）", "en": "Transmit (TX) Electrode", "category": "显示面板与光学触控", "note": "触控 IC 向外输出交变驱动信号的电极，是电容信号的发射端，与 RX 电极垂直交叉构成触控感应矩阵"}, {"jp": "受信電極", "kana": "じゅしんでんきょく", "zh": "接收电极（RX）", "en": "Receive (RX) Electrode", "category": "显示面板与光学触控", "note": "捕捉 TX 发射电场产生的电容变化信号的电极，将感应数据回传至触控 IC，完成触控坐标计算"}, {"jp": "シール剤（ざい） / 枠膠（わくごう）", "kana": "", "zh": "封框胶", "en": "Sealant / Frame Glue", "category": "显示面板与光学触控", "note": "边框密封胶，用于粘接上下两块玻璃基板，密封液晶腔体，锁住内部液晶，隔绝外界水汽、灰尘进入盒内"}];
+  const DB_NAME = 'KotoNoteStaticDB_v1';
+  const STORE_NAME = 'kv';
+  const LS_PREFIX = 'kotonote_static_v1_';
+
+  const DEFAULT_SETTINGS = {
+    theme: 'light',
+    order: 'sequential',
+    durationMin: 15,
+    rate: 1.0,
+    langPauseSec: 2.5,
+    jpVoice: ''
+  };
+
+  let dbPromise = null;
+  let storageLabel = '浏览器本地数据库 (IndexedDB)';
+
+  function openIDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve) => {
+      if (!('indexedDB' in window)) {
+        storageLabel = '浏览器本地存储';
+        resolve(null);
+        return;
+      }
+      try {
+        const req = window.indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => {
+          storageLabel = '浏览器本地存储';
+          resolve(null);
+        };
+      } catch {
+        storageLabel = '浏览器本地存储';
+        resolve(null);
+      }
+    });
+    return dbPromise;
+  }
+
+  async function kvGet(key, fallback = null) {
+    const db = await openIDB();
+    if (db) {
+      try {
+        const val = await new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const req = tx.objectStore(STORE_NAME).get(key);
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+        if (val !== undefined) return val;
+      } catch {}
+    }
+    try {
+      const raw = localStorage.getItem(LS_PREFIX + key);
+      if (raw !== null) return JSON.parse(raw);
+    } catch {}
+    return fallback;
+  }
+
+  async function kvSet(key, value) {
+    const db = await openIDB();
+    let savedToIDB = false;
+    if (db) {
+      try {
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          tx.objectStore(STORE_NAME).put(value, key);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+        savedToIDB = true;
+      } catch {}
+    }
+    // Also mirror small keys or fallback when IndexedDB is unavailable
+    if (!savedToIDB || key === 'settings') {
+      try {
+        localStorage.setItem(LS_PREFIX + key, JSON.stringify(value));
+      } catch {}
+    }
+  }
+
+  function nowStr() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  function shortStamp() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  const KANA_ONLY_RE = /^[ぁ-んァ-ヶー・\s⓪①②③④⑤⑥⑦⑧⑨〇]+$/;
+
+  function splitJpKana(jpRaw) {
+    const jp = String(jpRaw || '').trim();
+    if (!jp) return ['', ''];
+    const lines = jp.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 2 && KANA_ONLY_RE.test(lines[1]) && !KANA_ONLY_RE.test(lines[0])) {
+      return [lines[0], lines[1]];
+    }
+    const m = jp.match(/^([^（()）/\n]+?)（([ぁ-んァ-ヶー・〇⓪①②③④⑤⑥⑦⑧⑨]+)）$/);
+    if (m) return [m[1].trim(), m[2].trim()];
+
+    const m2 = jp.match(/^([ぁ-んー⓪①②③④⑤⑥⑦⑧⑨]+)[\s　]+([^\s　]+)$/);
+    if (m2 && !KANA_ONLY_RE.test(m2[2])) return [m2[2].trim(), m2[1].trim()];
+
+    const m3 = jp.match(/^([ぁ-んー]+[⓪①②③④⑤⑥⑦⑧⑨]?)([一-龥々]+[⓪①②③④⑤⑥⑦⑧⑨]*)$/);
+    if (m3) return [m3[2].trim(), m3[1].trim()];
+
+    return [lines.length > 1 ? lines.join(' / ') : jp, ''];
+  }
+
+  function parseTsvRows(rawText) {
+    const rows = [];
+    let row = [];
+    let field = '';
+    let inQuotes = false;
+    const n = rawText.length;
+
+    for (let i = 0; i < n; i++) {
+      const ch = rawText[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (i + 1 < n && rawText[i + 1] === '"') {
+            field += '"';
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          field += ch;
+        }
+        continue;
+      }
+      if (ch === '"' && field === '') {
+        inQuotes = true;
+      } else if (ch === '\t') {
+        row.push(field);
+        field = '';
+      } else if (ch === '\r') {
+        if (i + 1 < n && rawText[i + 1] === '\n') i++;
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = '';
+      } else if (ch === '\n') {
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = '';
+      } else {
+        field += ch;
+      }
+    }
+    if (field !== '' || row.length > 0) {
+      row.push(field);
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  function parseBatchText(rawText, fmt = 'tsv', defaultCategory = '未分类') {
+    const items = [];
+    if (!String(rawText || '').trim()) return items;
+    const cat = String(defaultCategory || '未分类').trim() || '未分类';
+
+    if (fmt === 'tsv') {
+      for (const r of parseTsvRows(rawText)) {
+        const cols = r.map((c) => String(c || '').trim());
+        while (cols.length < 4) cols.push('');
+        const [zhRaw, en, jpRaw, note] = cols;
+        if (zhRaw === '中文' && en.toLowerCase() === 'english') continue;
+        if (!zhRaw && !en && !jpRaw) continue;
+        const zh = zhRaw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).join(' / ');
+        const [jp, kana] = splitJpKana(jpRaw);
+        items.push({ jp, kana, zh, en, note, category: cat });
+      }
+    } else {
+      for (const rawLine of rawText.split(/\r?\n/)) {
+        const line = rawLine.trim();
+        if (!line) continue;
+        const parts = line.split('|').map((p) => p.trim());
+        while (parts.length < 5) parts.push('');
+        const [jpRaw, zh, en, kanaIn, note] = parts;
+        if (!jpRaw && !zh && !en) continue;
+        const [jp, autoKana] = splitJpKana(jpRaw);
+        items.push({ jp, kana: kanaIn || autoKana, zh, en, note, category: cat });
+      }
+    }
+    return items;
+  }
+
+  function computeCategories(words) {
+    const counts = new Map();
+    for (const w of words) {
+      const cat = String(w.category || '未分类').trim() || '未分类';
+      counts.set(cat, (counts.get(cat) || 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh-CN'))
+      .map(([name, count]) => ({ name, count }));
+  }
+
+  async function loadMeta() {
+    const meta = await kvGet('meta', null);
+    if (meta && typeof meta === 'object') return meta;
+    return { seeded: false, nextWordId: 1, nextEntryId: 1 };
+  }
+
+  async function loadWords() {
+    const meta = await loadMeta();
+    if (!meta.seeded) {
+      const ts = nowStr();
+      let wid = 1;
+      const seeded = SEED_ITEMS.map((item) => ({
+        id: wid++,
+        jp: item.jp || '',
+        kana: item.kana || '',
+        zh: item.zh || '',
+        en: item.en || '',
+        category: item.category || '未分类',
+        note: item.note || '',
+        created_at: ts,
+        updated_at: ts,
+        entries: []
+      })).reverse();
+      await kvSet('words', seeded);
+      await kvSet('meta', { seeded: true, nextWordId: wid, nextEntryId: 1 });
+      return seeded;
+    }
+    const words = await kvGet('words', []);
+    return Array.isArray(words) ? words : [];
+  }
+
+  async function loadScratch() {
+    const sc = await kvGet('scratch', null);
+    if (sc && typeof sc === 'object') {
+      if (!Array.isArray(sc.entries)) sc.entries = [];
+      return sc;
+    }
+    return { text: '', updated_at: nowStr(), entries: [] };
+  }
+
+  async function loadSettings() {
+    const saved = await kvGet('settings', null);
+    return { ...DEFAULT_SETTINGS, ...(saved && typeof saved === 'object' ? saved : {}) };
+  }
+
+  function triggerDownload(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function formatTsvField(val) {
+    const s = String(val || '');
+    if (/[\t\r\n"]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  return {
+    getStorageLabel: () => storageLabel,
+
+    async bootstrap() {
+      const words = await loadWords();
+      const scratch = await loadScratch();
+      const settings = await loadSettings();
+      return {
+        words,
+        categories: computeCategories(words),
+        scratch,
+        settings
+      };
+    },
+
+    async createWord(body) {
+      const jp = String(body.jp || '').trim();
+      const kana = String(body.kana || '').trim();
+      const zh = String(body.zh || '').trim();
+      const en = String(body.en || '').trim();
+      const category = String(body.category || '未分类').trim() || '未分类';
+      const note = String(body.note || '').trim();
+      if (!jp && !zh && !en) throw new Error('日语、中文、英文至少填写一项');
+
+      const words = await loadWords();
+      const meta = await loadMeta();
+      const id = Number(meta.nextWordId || words.length + 1);
+      meta.nextWordId = id + 1;
+      const ts = nowStr();
+      const word = { id, jp, kana, zh, en, category, note, created_at: ts, updated_at: ts, entries: [] };
+      words.unshift(word);
+      await kvSet('words', words);
+      await kvSet('meta', meta);
+      return { word, categories: computeCategories(words) };
+    },
+
+    async updateWord(id, body) {
+      const words = await loadWords();
+      const target = words.find((w) => Number(w.id) === Number(id));
+      if (!target) throw new Error('词条不存在');
+
+      for (const k of ['jp', 'kana', 'zh', 'en', 'category', 'note']) {
+        if (body[k] !== undefined && body[k] !== null) {
+          target[k] = String(body[k]).trim();
+        }
+      }
+      if (!target.category) target.category = '未分类';
+      if (!target.jp && !target.zh && !target.en) throw new Error('日语、中文、英文至少保留一项');
+      target.updated_at = nowStr();
+      await kvSet('words', words);
+      return { word: target, categories: computeCategories(words) };
+    },
+
+    async deleteWord(id) {
+      const words = await loadWords();
+      const next = words.filter((w) => Number(w.id) !== Number(id));
+      if (next.length === words.length) throw new Error('词条不存在');
+      await kvSet('words', next);
+      return { ok: true, categories: computeCategories(next) };
+    },
+
+    async batchImport(body) {
+      const items = parseBatchText(body.text || '', body.format || 'tsv', body.category || '新增术语');
+      if (!items.length) throw new Error('未解析到有效词条，请检查分隔格式');
+
+      const words = await loadWords();
+      const meta = await loadMeta();
+      let nextId = Number(meta.nextWordId || words.length + 1);
+      const mapByKey = new Map(words.map((w) => [`${w.zh}\u0000${w.jp}`, w]));
+      const ts = nowStr();
+      let added = 0, updated = 0, skipped = 0;
+      const newlyCreated = [];
+
+      for (const item of items) {
+        const key = `${item.zh}\u0000${item.jp}`;
+        const existing = mapByKey.get(key);
+        if (existing) {
+          let changed = false;
+          if (!existing.en && item.en) { existing.en = item.en; changed = true; }
+          if (!existing.kana && item.kana) { existing.kana = item.kana; changed = true; }
+          if (item.note && !String(existing.note || '').includes(item.note)) {
+            existing.note = [existing.note, item.note].filter(Boolean).join('\n');
+            changed = true;
+          }
+          if (changed) { existing.updated_at = ts; updated++; }
+          else skipped++;
+        } else {
+          const nw = {
+            id: nextId++,
+            jp: item.jp,
+            kana: item.kana,
+            zh: item.zh,
+            en: item.en,
+            category: item.category,
+            note: item.note,
+            created_at: ts,
+            updated_at: ts,
+            entries: []
+          };
+          newlyCreated.push(nw);
+          mapByKey.set(key, nw);
+          added++;
+        }
+      }
+
+      const merged = newlyCreated.length ? [...newlyCreated.reverse(), ...words] : words;
+      meta.nextWordId = nextId;
+      await kvSet('words', merged);
+      await kvSet('meta', meta);
+      return {
+        stats: { added, updated, skipped },
+        words: merged,
+        categories: computeCategories(merged)
+      };
+    },
+
+    async addWordEntry(wordId, content) {
+      const text = String(content || '').trim();
+      if (!text) throw new Error('便签内容不能为空');
+      const words = await loadWords();
+      const target = words.find((w) => Number(w.id) === Number(wordId));
+      if (!target) throw new Error('词条不存在');
+      const meta = await loadMeta();
+      const eid = Number(meta.nextEntryId || 1);
+      meta.nextEntryId = eid + 1;
+      const entry = { id: eid, text, time: shortStamp() };
+      if (!Array.isArray(target.entries)) target.entries = [];
+      target.entries.unshift(entry);
+      target.updated_at = nowStr();
+      await kvSet('words', words);
+      await kvSet('meta', meta);
+      return { entry, word: target };
+    },
+
+    async deleteWordEntry(wordId, entryId) {
+      const words = await loadWords();
+      const target = words.find((w) => Number(w.id) === Number(wordId));
+      if (!target) throw new Error('词条不存在');
+      target.entries = (target.entries || []).filter((e) => Number(e.id) !== Number(entryId));
+      await kvSet('words', words);
+      return { ok: true };
+    },
+
+    async saveScratch(content) {
+      const sc = await loadScratch();
+      sc.text = String(content || '');
+      sc.updated_at = nowStr();
+      await kvSet('scratch', sc);
+      return { scratch: sc };
+    },
+
+    async addScratchEntry(content) {
+      const text = String(content || '').trim();
+      if (!text) throw new Error('随手记内容不能为空');
+      const sc = await loadScratch();
+      const meta = await loadMeta();
+      const eid = Number(meta.nextEntryId || 1);
+      meta.nextEntryId = eid + 1;
+      const entry = { id: eid, text, time: shortStamp() };
+      sc.entries.unshift(entry);
+      sc.updated_at = nowStr();
+      await kvSet('scratch', sc);
+      await kvSet('meta', meta);
+      return { entry, scratch: sc };
+    },
+
+    async deleteScratchEntry(entryId) {
+      const sc = await loadScratch();
+      sc.entries = (sc.entries || []).filter((e) => Number(e.id) !== Number(entryId));
+      sc.updated_at = nowStr();
+      await kvSet('scratch', sc);
+      return { ok: true };
+    },
+
+    async updateSettings(patch) {
+      const cur = await loadSettings();
+      const next = { ...cur, ...(patch || {}) };
+      await kvSet('settings', next);
+      return { settings: next };
+    },
+
+    async exportJsonFile() {
+      const payload = {
+        app: 'KotoNote',
+        version: 2,
+        storage: 'Static IndexedDB',
+        exportedAt: nowStr(),
+        words: await loadWords(),
+        scratch: await loadScratch(),
+        settings: await loadSettings()
+      };
+      const dateTag = new Date().toISOString().slice(0, 10);
+      triggerDownload(JSON.stringify(payload, null, 2), `kotonote-backup-${dateTag}.json`, 'application/json;charset=utf-8');
+    },
+
+    async exportTsvFile() {
+      const words = [...(await loadWords())].reverse();
+      const lines = [['中文', 'English', '日本語', '备注', '分类'].map(formatTsvField).join('\t')];
+      for (const w of words) {
+        const jpFull = w.kana && !String(w.jp || '').includes(w.kana) ? `${w.jp}（${w.kana}）` : (w.jp || '');
+        lines.push([w.zh, w.en, jpFull, w.note, w.category].map(formatTsvField).join('\t'));
+      }
+      const dateTag = new Date().toISOString().slice(0, 10);
+      triggerDownload('\uFEFF' + lines.join('\n') + '\n', `kotonote-terms-${dateTag}.tsv`, 'text/tab-separated-values;charset=utf-8');
+    },
+
+    async importJson(payload, replace = false) {
+      if (!payload || typeof payload !== 'object' || !Array.isArray(payload.words)) {
+        throw new Error('备份 JSON 格式无效（缺少 words 列表）');
+      }
+      let words = replace ? [] : await loadWords();
+      const meta = await loadMeta();
+      let nextWid = replace ? 1 : Number(meta.nextWordId || words.length + 1);
+      let nextEid = replace ? 1 : Number(meta.nextEntryId || 1);
+      const mapByKey = new Map(words.map((w) => [`${w.zh}\u0000${w.jp}`, w]));
+      const ts = nowStr();
+      let added = 0, updated = 0;
+      const newlyCreated = [];
+
+      for (const w of [...payload.words].reverse()) {
+        const jp = String(w.jp || '').trim();
+        const kana = String(w.kana || '').trim();
+        const zh = String(w.zh || '').trim();
+        const en = String(w.en || '').trim();
+        const category = String(w.category || '未分类').trim() || '未分类';
+        const note = String(w.note || '').trim();
+        if (!jp && !zh && !en) continue;
+
+        const rawEntries = Array.isArray(w.entries) ? w.entries : [];
+        const key = `${zh}\u0000${jp}`;
+        const existing = replace ? null : mapByKey.get(key);
+        if (existing) {
+          existing.kana = kana || existing.kana || '';
+          existing.en = en || existing.en || '';
+          existing.category = category;
+          existing.note = note || existing.note || '';
+          existing.updated_at = ts;
+          const exSet = new Set((existing.entries || []).map((e) => e.text));
+          for (const reItem of [...rawEntries].reverse()) {
+            const t = String(reItem.text || '').trim();
+            if (t && !exSet.has(t)) {
+              existing.entries = existing.entries || [];
+              existing.entries.unshift({ id: nextEid++, text: t, time: String(reItem.time || shortStamp()) });
+              exSet.add(t);
+            }
+          }
+          updated++;
+        } else {
+          const normEntries = [];
+          for (const reItem of rawEntries) {
+            const t = String(reItem.text || '').trim();
+            if (t) normEntries.push({ id: nextEid++, text: t, time: String(reItem.time || shortStamp()) });
+          }
+          const nw = {
+            id: nextWid++,
+            jp, kana, zh, en, category, note,
+            created_at: String(w.created_at || ts),
+            updated_at: ts,
+            entries: normEntries
+          };
+          newlyCreated.push(nw);
+          mapByKey.set(key, nw);
+          added++;
+        }
+      }
+
+      if (newlyCreated.length) words = [...newlyCreated.reverse(), ...words];
+      meta.seeded = true;
+      meta.nextWordId = nextWid;
+      meta.nextEntryId = nextEid;
+      await kvSet('words', words);
+
+      const sc = await loadScratch();
+      if (payload.scratch && typeof payload.scratch === 'object') {
+        if (payload.scratch.text) sc.text = String(payload.scratch.text);
+        if (Array.isArray(payload.scratch.entries)) {
+          const exSc = new Set(sc.entries.map((e) => e.text));
+          for (const se of [...payload.scratch.entries].reverse()) {
+            const t = String(se.text || '').trim();
+            if (t && !exSc.has(t)) {
+              sc.entries.unshift({ id: nextEid++, text: t, time: String(se.time || shortStamp()) });
+              exSc.add(t);
+            }
+          }
+          meta.nextEntryId = nextEid;
+        }
+        sc.updated_at = nowStr();
+        await kvSet('scratch', sc);
+      }
+      await kvSet('meta', meta);
+
+      return {
+        stats: { added, updated },
+        words,
+        categories: computeCategories(words),
+        scratch: sc
+      };
+    }
+  };
+})();
+
+  
+  </script>
+  <script>
+window.KotoSpeech = (() => {
+  'use strict';
+
+  const isIOS = /iP(hone|ad|od)/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  let voices = [];
+  let sessionId = 0;
+  let currentUtterance = null;
+  let watchdog = null;
+  let audioCtx = null;
+  const voiceChangeListeners = [];
+
+  function loadVoices() {
+    if (!('speechSynthesis' in window)) return [];
+    const list = window.speechSynthesis.getVoices();
+    if (list && list.length) {
+      voices = list;
+    }
+    return voices;
+  }
+
+  function notifyVoicesChanged() {
+    loadVoices();
+    voiceChangeListeners.forEach((fn) => {
+      try { fn(voices); } catch {}
+    });
+  }
+
+  if ('speechSynthesis' in window) {
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = notifyVoicesChanged;
+    // iOS Safari occasionally populates voices asynchronously without firing onvoiceschanged reliably
+    setTimeout(notifyVoicesChanged, 400);
+    setTimeout(notifyVoicesChanged, 1200);
+  }
+
+  function onVoicesChange(fn) {
+    if (typeof fn === 'function') voiceChangeListeners.push(fn);
+  }
+
+  function wakeAudioRoute() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioCtx) audioCtx = new AudioCtx();
+      if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+      const buf = audioCtx.createBuffer(1, 1, 22050);
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(audioCtx.destination);
+      src.start(0);
+    } catch {}
+  }
+
+  function cleanForSpeech(text, langCode) {
+    let s = String(text || '').trim();
+    if (!s) return '';
+    // Strip pitch accent markers
+    s = s.replace(/[⓪①②③④⑤⑥⑦⑧⑨〇]/g, '');
+    if (langCode.startsWith('ja')) {
+      // Remove inline furigana parentheses like 黒鉛（こくえん） -> 黒鉛 to avoid reading twice
+      s = s.replace(/（[ぁ-んァ-ヶー・\s]+）/g, '');
+      s = s.replace(/\([ぁ-んァ-ヶー・\s]+\)/g, '');
+      // Remove inline Chinese annotations inside JP cell if any
+      s = s.replace(/（[^）]*[；;][^）]*）/g, '');
+      // Use natural Japanese pause punctuation instead of slashes/dots
+      s = s.replace(/[\/・\n]+/g, '、 ');
+      s = s.replace(/[~～]/g, '');
+    } else if (langCode.startsWith('zh')) {
+      s = s.replace(/[\/；;\n]+/g, '，');
+    } else {
+      s = s.replace(/[\/；;\n]+/g, ', ').replace(/[~～]/g, '');
+    }
+    return s.replace(/\s+/g, ' ').trim();
+  }
+
+  function scoreVoice(v, langCode) {
+    const name = (v.name || '').toLowerCase();
+    const uri = (v.voiceURI || '').toLowerCase();
+    const lang = (v.lang || '').toLowerCase();
+    const target = langCode.toLowerCase();
+    const isJa = target.startsWith('ja');
+
+    let score = 0;
+    if (lang === target) score += 25;
+    else if (lang.startsWith(target.slice(0, 2))) score += 10;
+
+    // Strongly favor Neural / Natural / Enhanced / Premium voices (least robotic)
+    if (/premium/i.test(name) || /premium/i.test(uri)) score += 120;
+    if (/enhanced|优化|高品質|高音質/i.test(name) || /enhanced/i.test(uri)) score += 110;
+    if (/natural|neural|wavenet|online/i.test(name)) score += 115;
+    if (/google\s*日本語|google.*japanese/i.test(name)) score += 105;
+
+    if (isJa) {
+      // Known natural-sounding Japanese voices across Windows Edge, macOS/iOS, Chrome, Android
+      if (/nanami|keita/i.test(name)) score += 65;
+      if (/hattori|o-?ren/i.test(name)) score += 55;
+      if (/kyoko|otoya/i.test(name)) score += 40;
+      if (/shiori|daichi|mayu|naoki|aoi/i.test(name)) score += 50;
+      // Penalize legacy robotic desktop voices when better ones exist
+      if (/haruka|ayumi|ichiro|sayaka|espeak|festival|compact/i.test(name)) score -= 45;
+    } else if (target.startsWith('zh')) {
+      if (/xiaoxiao|yunxi|ting-?ting|tingting|meijia|sinji|google/i.test(name)) score += 45;
+    } else {
+      if (/aria|jenny|guy|samantha|daniel|karen|alex|google/i.test(name)) score += 45;
+    }
+
+    // On iOS WebKit, Siri voices frequently drop silently in speechSynthesis; avoid in auto-selection
+    if (isIOS && /\bsiri\b/i.test(name)) {
+      score -= 200;
+    }
+
+    // On iOS, prefer localService among equal-quality voices for reliability
+    if (isIOS && v.localService) {
+      score += 12;
+    }
+
+    return score;
+  }
+
+  function isNaturalVoice(v) {
+    const s = ((v.name || '') + ' ' + (v.voiceURI || '')).toLowerCase();
+    return /premium|enhanced|natural|neural|online|nanami|keita|hattori|o-?ren|google|优化|高音質/.test(s);
+  }
+
+  function getJapaneseVoices() {
+    if (!voices.length) loadVoices();
+    const jaList = voices.filter((v) => (v.lang || '').toLowerCase().startsWith('ja'));
+    return jaList
+      .map((v) => ({
+        voice: v,
+        name: v.name,
+        lang: v.lang,
+        localService: Boolean(v.localService),
+        natural: isNaturalVoice(v),
+        score: scoreVoice(v, 'ja-JP')
+      }))
+      .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+  }
+
+  function pickSafeVoice(langCode, preferredVoiceName = '') {
+    if (!voices.length) loadVoices();
+    if (!voices.length) return null;
+
+    if (preferredVoiceName) {
+      const exactNamed = voices.find((v) => v.name === preferredVoiceName);
+      if (exactNamed) return exactNamed;
+    }
+
+    const shortLang = langCode.toLowerCase().slice(0, 2);
+    const matching = voices.filter((v) => (v.lang || '').toLowerCase().startsWith(shortLang));
+    if (!matching.length) return null;
+
+    const ranked = [...matching].sort((a, b) => scoreVoice(b, langCode) - scoreVoice(a, langCode));
+    return ranked[0];
+  }
+
+  function cancel(force = false) {
+    sessionId += 1;
+    clearTimeout(watchdog);
+    watchdog = null;
+    currentUtterance = null;
+    if ('speechSynthesis' in window) {
+      try {
+        if (force || window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+          window.speechSynthesis.cancel();
+        }
+      } catch {}
+    }
+    return sessionId;
+  }
+
+  function getSessionId() {
+    return sessionId;
+  }
+
+  function waitMs(ms, expectedSession) {
+    return new Promise((resolve) => {
+      setTimeout(() => resolve(expectedSession === sessionId), ms);
+    });
+  }
+
+  function speak(text, langCode, { rate = 1.0, syncStart = false, preferredVoiceName = '', onNotice = null } = {}) {
+    return new Promise((resolve) => {
+      if (!('speechSynthesis' in window)) {
+        if (onNotice) onNotice('当前浏览器不支持语音合成，请改用 Safari');
+        resolve(false);
+        return;
+      }
+
+      const spoken = cleanForSpeech(text, langCode);
+      if (!spoken) {
+        resolve(true);
+        return;
+      }
+
+      const mySession = sessionId;
+      let settled = false;
+      let retried = false;
+
+      const finish = (ok) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(watchdog);
+        watchdog = null;
+        resolve(ok);
+      };
+
+      const dispatch = (useExplicitVoice) => {
+        if (mySession !== sessionId) {
+          finish(false);
+          return;
+        }
+        const utt = new SpeechSynthesisUtterance(spoken);
+        utt.lang = langCode;
+        // Slightly gentler pacing for Japanese reduces robotic clipped cadence
+        const effectiveRate = langCode.startsWith('ja')
+          ? Math.max(0.72, Math.min(1.25, Number(rate || 1.0) * 0.94))
+          : Number(rate || 1.0);
+        utt.rate = effectiveRate;
+        utt.volume = 1;
+        utt.pitch = 1.0;
+
+        if (useExplicitVoice) {
+          const v = pickSafeVoice(langCode, langCode.startsWith('ja') ? preferredVoiceName : '');
+          if (v) utt.voice = v;
+        }
+
+        utt.onend = () => finish(true);
+        utt.onerror = (ev) => {
+          const err = ev && ev.error ? ev.error : '';
+          if (err === 'canceled' || err === 'interrupted') {
+            finish(false);
+            return;
+          }
+          if (useExplicitVoice && !retried && mySession === sessionId) {
+            retried = true;
+            dispatch(false);
+            return;
+          }
+          if (err === 'not-allowed' && onNotice) {
+            onNotice('浏览器拦截了朗读，请再次点击播放按钮');
+          }
+          finish(true);
+        };
+
+        const estMs = Math.max(4800, Math.min(22000, (spoken.length * 440) / Math.max(0.6, effectiveRate) + 4200));
+        clearTimeout(watchdog);
+        watchdog = setTimeout(() => {
+          if (mySession === sessionId) {
+            try { window.speechSynthesis.cancel(); } catch {}
+            finish(true);
+          }
+        }, estMs);
+
+        currentUtterance = utt;
+        try {
+          if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+          window.speechSynthesis.speak(utt);
+        } catch {
+          finish(false);
+        }
+      };
+
+      if (syncStart) {
+        dispatch(true);
+      } else {
+        setTimeout(() => dispatch(true), 60);
+      }
+    });
+  }
+
+  return {
+    loadVoices,
+    onVoicesChange,
+    wakeAudioRoute,
+    getJapaneseVoices,
+    pickSafeVoice,
+    cleanForSpeech,
+    cancel,
+    getSessionId,
+    waitMs,
+    speak
+  };
+})();
+
+  </script>
+  <script>
+(() => {
+  'use strict';
+
+  const API = window.KotoAPI;
+  const Speech = window.KotoSpeech;
+  const $ = (id) => document.getElementById(id);
+
+  const isIOS = /iP(hone|ad|od)/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isInAppBrowser = /MicroMessenger|QQ\/|Weibo|DingTalk|Lark/i.test(navigator.userAgent);
+
+  const state = {
+    words: [],
+    categories: [],
+    selectedCategory: '全部',
+    scratch: { text: '', entries: [] },
+    settings: {
+      theme: 'light',
+      order: 'sequential',
+      durationMin: 15,
+      rate: 1.0,
+      langPauseSec: 2.5,
+      jpVoice: ''
+    },
+    activeTab: 'study',
+    studyIndex: 0,
+    noteTab: 'word',
+    batchFormat: 'tsv',
+    // Recite
+    isPlaying: false,
+    playOrder: [],
+    playPos: 0,
+    activeLang: null,
+    jpRepeatPass: 0,
+    remainingSec: 15 * 60,
+    timerInterval: null,
+    lastTickTs: null,
+    wakeLock: null,
+    wakeLockWanted: false
+  };
+
+  function showToast(msg, duration = 2600) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(() => el.classList.remove('show'), duration);
+  }
+
+  function escapeHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatTime(sec) {
+    const s = Math.max(0, Math.floor(sec));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const r = s % 60;
+    if (h > 0) {
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+    }
+    return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+  }
+
+  function nowShortTime() {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+
+  function getScopedWords() {
+    if (state.selectedCategory === '全部') return state.words;
+    return state.words.filter((w) => w.category === state.selectedCategory);
+  }
+
+  function applyTheme() {
+    const theme = state.settings.theme || 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    $('theme-toggle-btn').textContent = theme === 'dark' ? '☀️' : '🌙';
+    $('theme-color-meta').setAttribute('content', theme === 'dark' ? '#000000' : '#F2F2F7');
+  }
+
+  function rebuildPlayOrder(resetPos = false) {
+    const scoped = getScopedWords();
+    const ids = scoped.map((w) => w.id);
+    if (state.settings.order === 'shuffle') {
+      for (let i = ids.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+      }
+    }
+    state.playOrder = ids;
+    if (resetPos || state.playPos >= state.playOrder.length) {
+      state.playPos = 0;
+    }
+  }
+
+  function getCurrentStudyWord() {
+    const scoped = getScopedWords();
+    if (!scoped.length) return null;
+    if (state.studyIndex >= scoped.length) state.studyIndex = 0;
+    if (state.studyIndex < 0) state.studyIndex = scoped.length - 1;
+    return scoped[state.studyIndex];
+  }
+
+  function getCurrentReciteWord() {
+    const scoped = getScopedWords();
+    if (!scoped.length) return null;
+    if (!state.playOrder.length) rebuildPlayOrder(true);
+    const id = state.playOrder[state.playPos];
+    return scoped.find((w) => w.id === id) || scoped[0];
+  }
+
+  function renderCategoryStrips() {
+    const allBtn = `<button class="cat-chip ${state.selectedCategory === '全部' ? 'active' : ''}" data-cat="全部">全部 (${state.words.length})</button>`;
+    const catBtns = state.categories
+      .map(
+        (c) =>
+          `<button class="cat-chip ${state.selectedCategory === c.name ? 'active' : ''}" data-cat="${escapeHtml(c.name)}">${escapeHtml(c.name)} (${c.count})</button>`
+      )
+      .join('');
+    const html = allBtn + catBtns;
+    ['study-cat-strip', 'recite-cat-strip', 'lexicon-cat-strip'].forEach((id) => {
+      const el = $(id);
+      if (el) el.innerHTML = html;
+    });
+
+    const datalist = $('category-datalist');
+    if (datalist) {
+      datalist.innerHTML = state.categories
+        .map((c) => `<option value="${escapeHtml(c.name)}"></option>`)
+        .join('');
+    }
+  }
+
+  function setFieldDisplay(el, value, placeholder) {
+    if (value && value.trim()) {
+      el.classList.remove('muted-placeholder');
+      el.textContent = value;
+    } else {
+      el.classList.add('muted-placeholder');
+      el.textContent = placeholder;
+    }
+  }
+
+  function renderStudy() {
+    const scoped = getScopedWords();
+    const word = getCurrentStudyWord();
+    $('study-counter').textContent = scoped.length ? `${state.studyIndex + 1} / ${scoped.length}` : '0 / 0';
+
+    if (!word) {
+      $('study-word-cat').textContent = state.selectedCategory;
+      setFieldDisplay($('study-jp-text'), '', '当前分类暂无词条');
+      $('study-jp-kana').style.display = 'none';
+      setFieldDisplay($('study-zh-text'), '', '点击右上角「+ 添加新词」录入');
+      setFieldDisplay($('study-en-text'), '', 'Add your trilingual terms');
+      renderNotes();
+      return;
+    }
+
+    $('study-word-cat').textContent = word.category || '未分类';
+    setFieldDisplay($('study-jp-text'), word.jp, '（待补充日语）');
+    $('study-jp-kana').textContent = word.kana || '';
+    $('study-jp-kana').style.display = word.kana ? 'block' : 'none';
+    setFieldDisplay($('study-zh-text'), word.zh, '（待补充中文）');
+    setFieldDisplay($('study-en-text'), word.en, '（待补充英文）');
+    renderNotes();
+  }
+
+  function setStudyHighlight(lang) {
+    ['jp', 'zh', 'en'].forEach((l) => {
+      const el = $(`study-${l}-block`);
+      if (el) el.classList.toggle('speaking', l === lang);
+    });
+  }
+
+  function renderNotes() {
+    const isWordTab = state.noteTab === 'word';
+    const word = getCurrentStudyWord();
+
+    $('notes-title-label').textContent = isWordTab
+      ? word
+        ? `本词便签 · ${word.jp || word.zh || word.en}`
+        : '本词便签'
+      : '随手记 · 全局备忘';
+
+    document.querySelectorAll('[data-note-tab]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.noteTab === state.noteTab);
+    });
+
+    const textarea = $('note-textarea');
+    if (isWordTab) {
+      textarea.disabled = !word;
+      textarea.value = word ? word.note || '' : '';
+      textarea.placeholder = '记录当前单词的例句、语境、助词搭配或记忆点…';
+    } else {
+      textarea.disabled = false;
+      textarea.value = state.scratch.text || '';
+      textarea.placeholder = '随时记录灵感、易混术语对比或待查单词…';
+    }
+
+    const entries = isWordTab
+      ? word && Array.isArray(word.entries)
+        ? word.entries
+        : []
+      : state.scratch.entries || [];
+
+    const listEl = $('note-entries-list');
+    if (!entries.length) {
+      listEl.innerHTML = '';
+      return;
+    }
+
+    listEl.innerHTML = entries
+      .map(
+        (entry) => `
+        <div class="note-entry">
+          <div class="note-entry-body">
+            <div class="note-entry-text">${escapeHtml(entry.text)}</div>
+            <div class="note-entry-time">${escapeHtml(entry.time)}</div>
+          </div>
+          <button class="note-del-btn" data-del-entry-id="${entry.id}" aria-label="删除这条便签">×</button>
+        </div>
+      `
+      )
+      .join('');
+  }
+
+  function renderRecite() {
+    const scoped = getScopedWords();
+    const word = getCurrentReciteWord();
+    $('recite-counter').textContent = scoped.length ? `${state.playPos + 1} / ${scoped.length}` : '0 / 0';
+    $('recite-timer-text').textContent = formatTime(state.remainingSec);
+    $('recite-play-btn').textContent = state.isPlaying ? '⏸' : '▶';
+    $('recite-hero').classList.toggle('playing', state.isPlaying);
+
+    if (!word) {
+      setFieldDisplay($('recite-jp-text'), '', '暂无词条');
+      $('recite-kana-text').style.display = 'none';
+      setFieldDisplay($('recite-zh-text'), '', '请先添加或切换分类');
+      setFieldDisplay($('recite-en-text'), '', 'Empty list');
+    } else {
+      setFieldDisplay($('recite-jp-text'), word.jp, '（无日语，自动跳过）');
+      $('recite-kana-text').textContent = word.kana || '';
+      $('recite-kana-text').style.display = word.kana ? 'block' : 'none';
+      setFieldDisplay($('recite-zh-text'), word.zh, '（无中文，自动跳过）');
+      setFieldDisplay($('recite-en-text'), word.en, '（无英文，自动跳过）');
+    }
+
+    ['jp', 'zh', 'en'].forEach((lang) => {
+      const row = $(`recite-row-${lang}`);
+      if (row) row.classList.toggle('active-lang', state.activeLang === lang);
+    });
+
+    document.querySelectorAll('.order-step').forEach((step) => {
+      step.classList.toggle('current', step.dataset.step === state.activeLang);
+    });
+
+    document.querySelectorAll('[data-order]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.order === state.settings.order);
+    });
+
+    document.querySelectorAll('#duration-chips .chip-btn').forEach((btn) => {
+      btn.classList.toggle('active', Number(btn.dataset.min) === Number(state.settings.durationMin));
+    });
+
+    document.querySelectorAll('#rate-chips .chip-btn').forEach((btn) => {
+      btn.classList.toggle('active', Number(btn.dataset.rate) === Number(state.settings.rate));
+    });
+
+    document.querySelectorAll('#pause-chips .chip-btn').forEach((btn) => {
+      btn.classList.toggle('active', Math.abs(Number(btn.dataset.pause) - Number(state.settings.langPauseSec || 2.5)) < 0.05);
+    });
+
+    const jpBadge = $('recite-jp-badge');
+    if (jpBadge) {
+      if (state.isPlaying && state.activeLang === 'jp' && state.jpRepeatPass > 0) {
+        jpBadge.textContent = `日 · 第 ${state.jpRepeatPass} / 2 遍`;
+      } else {
+        jpBadge.textContent = '日 · ja-JP ×2';
+      }
+    }
+
+    const voiceSelect = $('jp-voice-select');
+    if (voiceSelect && voiceSelect.value !== (state.settings.jpVoice || '')) {
+      voiceSelect.value = state.settings.jpVoice || '';
+    }
+
+    $('wake-lock-btn').classList.toggle('on', Boolean(state.wakeLock));
+    $('wake-lock-label').textContent = state.wakeLock ? '常亮已开' : '屏幕常亮';
+  }
+
+  function renderLexicon() {
+    const q = ($('lexicon-search').value || '').trim().toLowerCase();
+    const scoped = getScopedWords();
+    const filtered = scoped.filter((w) => {
+      if (!q) return true;
+      const hay = [
+        w.jp,
+        w.kana,
+        w.zh,
+        w.en,
+        w.category,
+        w.note,
+        ...(w.entries || []).map((e) => e.text)
+      ]
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    });
+
+    $('header-subtitle').textContent = `离线纯静态版 · ${state.words.length} 词`;
+    $('lexicon-count-pill').textContent = q
+      ? `匹配 ${filtered.length} / ${scoped.length} 条`
+      : `当前共 ${filtered.length} 条术语`;
+
+    const listEl = $('word-list');
+    if (!filtered.length) {
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-title">${q ? '未找到匹配词条' : '当前分类暂无术语'}</div>
+          <div>点击右上角「+ 添加新词」或使用「批量导入」写入数据库</div>
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = filtered
+      .map((w) => {
+        const hasNote = Boolean((w.note && w.note.trim()) || (w.entries && w.entries.length));
+        return `
+          <div class="word-item" data-open-id="${w.id}">
+            <div class="word-item-main">
+              <div class="word-item-jp">
+                <span>${escapeHtml(w.jp || '（待补充日语）')}</span>
+                ${w.kana ? `<span class="word-item-kana">${escapeHtml(w.kana)}</span>` : ''}
+              </div>
+              <div class="word-item-zh">${escapeHtml(w.zh || '（待补充中文）')}</div>
+              ${w.en ? `<div class="word-item-en">${escapeHtml(w.en)}</div>` : ''}
+              <div class="word-item-tags">
+                <span class="word-item-cat-tag">${escapeHtml(w.category || '未分类')}</span>
+                ${hasNote ? `<span class="word-item-note-tag">✎ 含备注/便签</span>` : ''}
+              </div>
+            </div>
+            <div class="word-item-actions">
+              <button class="mini-action-btn" data-edit-id="${w.id}" title="编辑">✎</button>
+              <button class="mini-action-btn danger" data-del-id="${w.id}" title="删除">🗑</button>
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  function renderAll() {
+    renderCategoryStrips();
+    renderStudy();
+    renderRecite();
+    renderLexicon();
+  }
+
+  // ---------- Recite Loop (Strictly JP -> ZH -> EN, skips empty fields cleanly) ----------
+  function startTimer() {
+    stopTimer();
+    state.lastTickTs = Date.now();
+    state.timerInterval = setInterval(() => {
+      if (!state.isPlaying) return;
+      const now = Date.now();
+      const delta = (now - state.lastTickTs) / 1000;
+      state.lastTickTs = now;
+      state.remainingSec = Math.max(0, state.remainingSec - delta);
+      $('recite-timer-text').textContent = formatTime(state.remainingSec);
+
+      if (state.remainingSec <= 0) {
+        stopRecite(true);
+        showToast('⏰ 定时背词已完成，辛苦了！', 3800);
+      }
+    }, 400);
+  }
+
+  function stopTimer() {
+    if (state.timerInterval) {
+      clearInterval(state.timerInterval);
+      state.timerInterval = null;
+    }
+  }
+
+  function populateJpVoiceSelect() {
+    const sel = $('jp-voice-select');
+    if (!sel) return;
+    const list = Speech.getJapaneseVoices();
+    const currentVal = state.settings.jpVoice || '';
+    const best = list[0];
+    const autoLabel = best
+      ? `自动优选（${best.name.replace(/Microsoft |Google |Apple /gi, '')}）`
+      : '自动优选（最自然）';
+
+    let optionsHtml = `<option value="">${escapeHtml(autoLabel)}</option>`;
+    list.forEach((item) => {
+      const tag = item.natural ? '★自然 · ' : '';
+      optionsHtml += `<option value="${escapeHtml(item.name)}">${escapeHtml(tag + item.name)}</option>`;
+    });
+    sel.innerHTML = optionsHtml;
+    sel.value = list.some((x) => x.name === currentVal) ? currentVal : '';
+  }
+
+  async function runReciteLoop(sessionId, isFirstGestureCall = false) {
+    let syncFirst = isFirstGestureCall;
+    while (state.isPlaying && sessionId === Speech.getSessionId()) {
+      const word = getCurrentReciteWord();
+      if (!word) {
+        stopRecite(false);
+        return;
+      }
+
+      const langPauseMs = Math.round(Number(state.settings.langPauseSec || 2.5) * 1000);
+      const jpRepeatGapMs = 850;
+      const steps = [
+        { lang: 'jp', text: word.jp, code: 'ja-JP', repeat: 2 },
+        { lang: 'zh', text: word.zh, code: 'zh-CN', repeat: 1 },
+        { lang: 'en', text: word.en, code: 'en-US', repeat: 1 }
+      ].filter((s) => s.text && s.text.trim());
+
+      for (const step of steps) {
+        if (!state.isPlaying || sessionId !== Speech.getSessionId()) return;
+        state.activeLang = step.lang;
+
+        for (let pass = 1; pass <= step.repeat; pass++) {
+          if (!state.isPlaying || sessionId !== Speech.getSessionId()) return;
+          state.jpRepeatPass = step.lang === 'jp' ? pass : 0;
+          renderRecite();
+
+          await Speech.speak(step.text, step.code, {
+            rate: state.settings.rate,
+            syncStart: syncFirst,
+            preferredVoiceName: state.settings.jpVoice || '',
+            onNotice: (m) => showToast(m, 3200)
+          });
+          syncFirst = false;
+
+          if (!state.isPlaying || sessionId !== Speech.getSessionId()) return;
+          if (pass < step.repeat) {
+            if (!(await Speech.waitMs(jpRepeatGapMs, sessionId))) return;
+          }
+        }
+
+        state.jpRepeatPass = 0;
+        // 2-3s pause between every language (日×2 -> 中, 中 -> 英, 英 -> 下一词日)
+        if (!(await Speech.waitMs(langPauseMs, sessionId))) return;
+      }
+
+      if (!steps.length) {
+        if (!(await Speech.waitMs(500, sessionId))) return;
+      }
+
+      state.playPos += 1;
+      if (state.playPos >= state.playOrder.length) {
+        rebuildPlayOrder(true);
+      }
+    }
+  }
+
+  function startRecite() {
+    if (!getScopedWords().length) {
+      showToast('当前分类暂无词条');
+      return;
+    }
+    Speech.wakeAudioRoute();
+    if (state.remainingSec <= 0) {
+      state.remainingSec = state.settings.durationMin * 60;
+    }
+    const sessionId = Speech.cancel();
+    state.isPlaying = true;
+    startTimer();
+    runReciteLoop(sessionId, true);
+  }
+
+  function stopRecite(resetLang = true) {
+    state.isPlaying = false;
+    stopTimer();
+    Speech.cancel(true);
+    if (resetLang) state.activeLang = null;
+    state.jpRepeatPass = 0;
+    renderRecite();
+  }
+
+  function stepRecite(dir) {
+    const scoped = getScopedWords();
+    if (!scoped.length) return;
+    const wasPlaying = state.isPlaying;
+    Speech.cancel(true);
+    state.playPos = (state.playPos + dir + state.playOrder.length) % state.playOrder.length;
+    state.activeLang = null;
+    renderRecite();
+    if (wasPlaying) {
+      Speech.wakeAudioRoute();
+      const sid = Speech.getSessionId();
+      runReciteLoop(sid, true);
+    }
+  }
+
+  // ---------- Study Speech ----------
+  async function studySpeakOne(lang) {
+    const word = getCurrentStudyWord();
+    if (!word) return;
+    const map = {
+      jp: { text: word.jp, code: 'ja-JP' },
+      zh: { text: word.zh, code: 'zh-CN' },
+      en: { text: word.en, code: 'en-US' }
+    };
+    const item = map[lang];
+    if (!item || !item.text || !item.text.trim()) {
+      showToast('该语言字段为空，可点右上角编辑补充');
+      return;
+    }
+    if (state.isPlaying) stopRecite(true);
+    Speech.wakeAudioRoute();
+    const sid = Speech.cancel();
+    setStudyHighlight(lang);
+    await Speech.speak(item.text, item.code, {
+      rate: state.settings.rate,
+      syncStart: true,
+      preferredVoiceName: state.settings.jpVoice || '',
+      onNotice: (m) => showToast(m, 3200)
+    });
+    if (sid === Speech.getSessionId()) setStudyHighlight(null);
+  }
+
+  async function studySpeakAll() {
+    const word = getCurrentStudyWord();
+    if (!word) return;
+    if (state.isPlaying) stopRecite(true);
+    Speech.wakeAudioRoute();
+    const sid = Speech.cancel();
+
+    const steps = [
+      { lang: 'jp', text: word.jp, code: 'ja-JP' },
+      { lang: 'zh', text: word.zh, code: 'zh-CN' },
+      { lang: 'en', text: word.en, code: 'en-US' }
+    ].filter((s) => s.text && s.text.trim());
+
+    for (let i = 0; i < steps.length; i++) {
+      if (sid !== Speech.getSessionId()) return;
+      setStudyHighlight(steps[i].lang);
+      await Speech.speak(steps[i].text, steps[i].code, {
+        rate: state.settings.rate,
+        syncStart: i === 0,
+        preferredVoiceName: state.settings.jpVoice || '',
+        onNotice: (m) => showToast(m, 3200)
+      });
+      if (sid !== Speech.getSessionId()) return;
+      await Speech.waitMs(360, sid);
+    }
+    if (sid === Speech.getSessionId()) setStudyHighlight(null);
+  }
+
+  async function testVoiceDiagnostic() {
+    if (state.isPlaying) stopRecite(true);
+    Speech.wakeAudioRoute();
+    const sid = Speech.cancel();
+    Speech.loadVoices();
+    const jpV = Speech.pickSafeVoice('ja-JP', state.settings.jpVoice || '');
+    const zhV = Speech.pickSafeVoice('zh-CN');
+    const enV = Speech.pickSafeVoice('en-US');
+    showToast(
+      `日(${jpV ? jpV.name : '默认'}) / 中(${zhV ? zhV.name : '默认'}) / 英(${enV ? enV.name : '默认'})`,
+      3800
+    );
+    await Speech.speak('こんにちは、よろしくお願いします。', 'ja-JP', {
+      rate: state.settings.rate,
+      syncStart: true,
+      preferredVoiceName: state.settings.jpVoice || ''
+    });
+    if (sid !== Speech.getSessionId()) return;
+    await Speech.waitMs(500, sid);
+    await Speech.speak('你好', 'zh-CN', { rate: state.settings.rate, syncStart: false });
+    if (sid !== Speech.getSessionId()) return;
+    await Speech.waitMs(500, sid);
+    await Speech.speak('Hello', 'en-US', { rate: state.settings.rate, syncStart: false });
+  }
+
+  // ---------- Wake Lock ----------
+  async function toggleWakeLock() {
+    if (!('wakeLock' in navigator)) {
+      showToast('当前浏览器不支持自动防息屏（需 HTTPS 环境）');
+      return;
+    }
+    if (state.wakeLock) {
+      try { await state.wakeLock.release(); } catch {}
+      state.wakeLock = null;
+      state.wakeLockWanted = false;
+      renderRecite();
+      showToast('已关闭屏幕常亮');
+      return;
+    }
+    try {
+      state.wakeLock = await navigator.wakeLock.request('screen');
+      state.wakeLockWanted = true;
+      state.wakeLock.addEventListener('release', () => {
+        state.wakeLock = null;
+        renderRecite();
+      });
+      renderRecite();
+      showToast('已开启屏幕常亮');
+    } catch {
+      showToast('无法开启常亮（低电量模式或非 HTTPS）');
+    }
+  }
+
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && state.wakeLockWanted && !state.wakeLock && 'wakeLock' in navigator) {
+      try {
+        state.wakeLock = await navigator.wakeLock.request('screen');
+        renderRecite();
+      } catch {}
+    }
+  });
+
+  // ---------- Tabs & Modals ----------
+  function switchTab(tabName) {
+    state.activeTab = tabName;
+    document.querySelectorAll('.view-section').forEach((sec) => {
+      sec.classList.toggle('active', sec.id === `view-${tabName}`);
+    });
+    document.querySelectorAll('.tab-item').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.tab === tabName);
+    });
+    renderAll();
+  }
+
+  function openWordSheet(word = null) {
+    $('word-sheet-title').textContent = word ? '编辑词条' : '添加新词条';
+    $('save-word-submit').textContent = word ? '保存修改' : '保存到本地词库';
+    $('edit-word-id').value = word ? String(word.id) : '';
+    $('input-jp').value = word ? word.jp || '' : '';
+    $('input-kana').value = word ? word.kana || '' : '';
+    $('input-zh').value = word ? word.zh || '' : '';
+    $('input-en').value = word ? word.en || '' : '';
+    $('input-category').value = word
+      ? word.category || '未分类'
+      : state.selectedCategory !== '全部'
+      ? state.selectedCategory
+      : '显示面板与光学触控';
+    $('input-note').value = word ? word.note || '' : '';
+    $('word-sheet').classList.add('open');
+    setTimeout(() => $('input-jp').focus(), 180);
+  }
+
+  function closeWordSheet() {
+    $('word-sheet').classList.remove('open');
+  }
+
+  function syncSettingsPatch(patch) {
+    Object.assign(state.settings, patch);
+    API.updateSettings(patch).catch(() => {});
+  }
+
+  // ---------- Event Binding ----------
+  function bindEvents() {
+    if (isIOS && isInAppBrowser) {
+      $('inapp-banner').classList.add('show');
+    }
+
+    $('theme-toggle-btn').addEventListener('click', () => {
+      const next = state.settings.theme === 'dark' ? 'light' : 'dark';
+      syncSettingsPatch({ theme: next });
+      applyTheme();
+    });
+
+    document.querySelectorAll('.tab-item').forEach((btn) => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    // Category filter click delegation
+    ['study-cat-strip', 'recite-cat-strip', 'lexicon-cat-strip'].forEach((id) => {
+      $(id).addEventListener('click', (e) => {
+        const chip = e.target.closest('[data-cat]');
+        if (!chip) return;
+        const cat = chip.dataset.cat;
+        if (cat === state.selectedCategory) return;
+        if (state.isPlaying) stopRecite(true);
+        state.selectedCategory = cat;
+        state.studyIndex = 0;
+        rebuildPlayOrder(true);
+        renderAll();
+      });
+    });
+
+    // Add / Edit word sheet
+    $('open-add-btn').addEventListener('click', () => openWordSheet(null));
+    $('lexicon-add-btn').addEventListener('click', () => openWordSheet(null));
+    $('close-word-sheet').addEventListener('click', closeWordSheet);
+    $('word-sheet').addEventListener('click', (e) => {
+      if (e.target === $('word-sheet')) closeWordSheet();
+    });
+
+    $('word-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = $('edit-word-id').value.trim();
+      const body = {
+        jp: $('input-jp').value.trim(),
+        kana: $('input-kana').value.trim(),
+        zh: $('input-zh').value.trim(),
+        en: $('input-en').value.trim(),
+        category: $('input-category').value.trim() || '未分类',
+        note: $('input-note').value.trim()
+      };
+      if (!body.jp && !body.zh && !body.en) {
+        showToast('日语、中文、英文至少填写一项');
+        return;
+      }
+      try {
+        if (id) {
+          const res = await API.updateWord(Number(id), body);
+          const idx = state.words.findIndex((w) => w.id === Number(id));
+          if (idx >= 0) state.words[idx] = res.word;
+          state.categories = res.categories;
+          showToast('词条已保存');
+        } else {
+          const res = await API.createWord(body);
+          state.words.unshift(res.word);
+          state.categories = res.categories;
+          if (state.selectedCategory !== '全部' && res.word.category !== state.selectedCategory) {
+            state.selectedCategory = '全部';
+          }
+          state.studyIndex = 0;
+          rebuildPlayOrder(false);
+          showToast(`已添加词条：${res.word.jp || res.word.zh}`);
+        }
+        closeWordSheet();
+        renderAll();
+      } catch (err) {
+        showToast(err.message);
+      }
+    });
+
+    // Study controls
+    $('study-prev-btn').addEventListener('click', () => {
+      const scoped = getScopedWords();
+      if (!scoped.length) return;
+      Speech.cancel(true);
+      setStudyHighlight(null);
+      state.studyIndex = (state.studyIndex - 1 + scoped.length) % scoped.length;
+      renderStudy();
+    });
+
+    $('study-next-btn').addEventListener('click', () => {
+      const scoped = getScopedWords();
+      if (!scoped.length) return;
+      Speech.cancel(true);
+      setStudyHighlight(null);
+      state.studyIndex = (state.studyIndex + 1) % scoped.length;
+      renderStudy();
+    });
+
+    $('study-shuffle-btn').addEventListener('click', () => {
+      const scoped = getScopedWords();
+      if (scoped.length < 2) return;
+      Speech.cancel(true);
+      setStudyHighlight(null);
+      let next = state.studyIndex;
+      while (next === state.studyIndex) {
+        next = Math.floor(Math.random() * scoped.length);
+      }
+      state.studyIndex = next;
+      renderStudy();
+    });
+
+    $('study-edit-btn').addEventListener('click', () => {
+      const w = getCurrentStudyWord();
+      if (w) openWordSheet(w);
+    });
+
+    $('study-speak-all-btn').addEventListener('click', studySpeakAll);
+    document.querySelectorAll('#study-card [data-speak]').forEach((block) => {
+      block.addEventListener('click', () => studySpeakOne(block.dataset.speak));
+    });
+
+    // Swipe left/right
+    let touchStartX = 0;
+    let touchStartY = 0;
+    $('study-card').addEventListener(
+      'touchstart',
+      (e) => {
+        if (e.touches.length !== 1) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      },
+      { passive: true }
+    );
+    $('study-card').addEventListener(
+      'touchend',
+      (e) => {
+        const scoped = getScopedWords();
+        if (!e.changedTouches.length || scoped.length < 2) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(dx) > 54 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+          Speech.cancel(true);
+          setStudyHighlight(null);
+          state.studyIndex =
+            dx < 0 ? (state.studyIndex + 1) % scoped.length : (state.studyIndex - 1 + scoped.length) % scoped.length;
+          renderStudy();
+        }
+      },
+      { passive: true }
+    );
+
+    // Notes
+    document.querySelectorAll('[data-note-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.noteTab = btn.dataset.noteTab;
+        renderNotes();
+      });
+    });
+
+    let saveDebounce = null;
+    $('note-textarea').addEventListener('input', (e) => {
+      const val = e.target.value;
+      $('note-save-status').textContent = '同步中…';
+      clearTimeout(saveDebounce);
+      saveDebounce = setTimeout(async () => {
+        try {
+          if (state.noteTab === 'word') {
+            const word = getCurrentStudyWord();
+            if (word) {
+              word.note = val;
+              await API.updateWord(word.id, { note: val });
+            }
+          } else {
+            state.scratch.text = val;
+            await API.saveScratch(val);
+          }
+          $('note-save-status').textContent = `已本地保存 · ${nowShortTime()}`;
+        } catch (err) {
+          $('note-save-status').textContent = '保存失败，请检查网络';
+          showToast(err.message);
+        }
+      }, 380);
+    });
+
+    async function addQuickNote() {
+      const input = $('quick-note-input');
+      const text = input.value.trim();
+      if (!text) return;
+      try {
+        if (state.noteTab === 'word') {
+          const word = getCurrentStudyWord();
+          if (!word) return;
+          const res = await API.addWordEntry(word.id, text);
+          word.entries = res.word.entries;
+        } else {
+          const res = await API.addScratchEntry(text);
+          state.scratch = res.scratch;
+        }
+        input.value = '';
+        $('note-save-status').textContent = `已追加 · ${nowShortTime()}`;
+        renderNotes();
+        renderLexicon();
+      } catch (err) {
+        showToast(err.message);
+      }
+    }
+
+    $('quick-note-add-btn').addEventListener('click', addQuickNote);
+    $('quick-note-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addQuickNote();
+      }
+    });
+
+    $('note-entries-list').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-del-entry-id]');
+      if (!btn) return;
+      const entryId = Number(btn.dataset.delEntryId);
+      try {
+        if (state.noteTab === 'word') {
+          const word = getCurrentStudyWord();
+          if (!word) return;
+          await API.deleteWordEntry(word.id, entryId);
+          word.entries = (word.entries || []).filter((x) => x.id !== entryId);
+        } else {
+          await API.deleteScratchEntry(entryId);
+          state.scratch.entries = (state.scratch.entries || []).filter((x) => x.id !== entryId);
+        }
+        renderNotes();
+        renderLexicon();
+      } catch (err) {
+        showToast(err.message);
+      }
+    });
+
+    // Recite controls
+    $('recite-play-btn').addEventListener('click', () => {
+      if (state.isPlaying) stopRecite(false);
+      else startRecite();
+    });
+    $('recite-prev-btn').addEventListener('click', () => stepRecite(-1));
+    $('recite-next-btn').addEventListener('click', () => stepRecite(1));
+    $('wake-lock-btn').addEventListener('click', toggleWakeLock);
+    $('test-voice-btn').addEventListener('click', testVoiceDiagnostic);
+
+    document.querySelectorAll('[data-order]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const order = btn.dataset.order;
+        if (state.settings.order === order) return;
+        syncSettingsPatch({ order });
+        rebuildPlayOrder(true);
+        renderRecite();
+        showToast(order === 'shuffle' ? '已切换为乱序播放' : '已切换为顺序播放');
+      });
+    });
+
+    document.querySelectorAll('#duration-chips .chip-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const min = Number(btn.dataset.min);
+        state.remainingSec = min * 60;
+        syncSettingsPatch({ durationMin: min });
+        renderRecite();
+        showToast(`定时已设为 ${min === 60 ? '1 小时' : min + ' 分钟'}`);
+      });
+    });
+
+    document.querySelectorAll('#rate-chips .chip-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const rate = Number(btn.dataset.rate);
+        syncSettingsPatch({ rate });
+        renderRecite();
+        showToast(`语速已调整为 ${rate}x`);
+      });
+    });
+
+    document.querySelectorAll('#pause-chips .chip-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const sec = Number(btn.dataset.pause);
+        syncSettingsPatch({ langPauseSec: sec });
+        renderRecite();
+        showToast(`语种间隔已设为 ${sec.toFixed(1)} 秒`);
+      });
+    });
+
+    const jpVoiceSel = $('jp-voice-select');
+    if (jpVoiceSel) {
+      jpVoiceSel.addEventListener('change', async () => {
+        const chosen = jpVoiceSel.value;
+        syncSettingsPatch({ jpVoice: chosen });
+        const v = Speech.pickSafeVoice('ja-JP', chosen);
+        showToast(`日语发音人：${v ? v.name : '系统默认'}`);
+        if (!state.isPlaying) {
+          Speech.wakeAudioRoute();
+          Speech.cancel();
+          await Speech.speak('こんにちは、視野角。', 'ja-JP', {
+            rate: state.settings.rate,
+            syncStart: true,
+            preferredVoiceName: chosen
+          });
+        }
+      });
+    }
+
+    Speech.onVoicesChange(populateJpVoiceSelect);
+    populateJpVoiceSelect();
+
+    $('reset-timer-btn').addEventListener('click', () => {
+      state.remainingSec = state.settings.durationMin * 60;
+      renderRecite();
+      showToast('倒计时已重置');
+    });
+
+    // Lexicon search & item actions
+    $('lexicon-search').addEventListener('input', renderLexicon);
+
+    $('word-list').addEventListener('click', async (e) => {
+      const editBtn = e.target.closest('[data-edit-id]');
+      if (editBtn) {
+        e.stopPropagation();
+        const word = state.words.find((w) => w.id === Number(editBtn.dataset.editId));
+        if (word) openWordSheet(word);
+        return;
+      }
+
+      const delBtn = e.target.closest('[data-del-id]');
+      if (delBtn) {
+        e.stopPropagation();
+        const id = Number(delBtn.dataset.delId);
+        const target = state.words.find((w) => w.id === id);
+        if (target && confirm(`确定删除「${target.jp || target.zh}」吗？`)) {
+          try {
+            const res = await API.deleteWord(id);
+            state.words = state.words.filter((w) => w.id !== id);
+            state.categories = res.categories;
+            rebuildPlayOrder(false);
+            renderAll();
+            showToast('已删除词条');
+          } catch (err) {
+            showToast(err.message);
+          }
+        }
+        return;
+      }
+
+      const row = e.target.closest('[data-open-id]');
+      if (row) {
+        const id = Number(row.dataset.openId);
+        const scoped = getScopedWords();
+        const idx = scoped.findIndex((w) => w.id === id);
+        if (idx >= 0) {
+          state.studyIndex = idx;
+          switchTab('study');
+        }
+      }
+    });
+
+    // Batch import modal
+    $('open-batch-btn').addEventListener('click', () => $('batch-sheet').classList.add('open'));
+    $('close-batch-sheet').addEventListener('click', () => $('batch-sheet').classList.remove('open'));
+    $('batch-sheet').addEventListener('click', (e) => {
+      if (e.target === $('batch-sheet')) $('batch-sheet').classList.remove('open');
+    });
+
+    document.querySelectorAll('[data-batch-fmt]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.batchFormat = btn.dataset.batchFmt;
+        document.querySelectorAll('[data-batch-fmt]').forEach((b) => {
+          b.classList.toggle('active', b.dataset.batchFmt === state.batchFormat);
+        });
+        if (state.batchFormat === 'tsv') {
+          $('batch-hint-label').textContent = '直接从 Excel / WPS / 飞书复制粘贴（中文 ⇥ English ⇥ 日本語 ⇥ 备注）：';
+          $('batch-textarea').placeholder = '视角\tView Angles\t視野角（しやかく）\t\n对比度\tContrast Ratio\tコントラスト比（コントラストひ）\t';
+        } else {
+          $('batch-hint-label').textContent = '每行一条，用 | 分隔：日语 | 中文 | 英文 | 假名(可选) | 备注(可选)';
+          $('batch-textarea').placeholder = '視野角 | 视角 | View Angles | しやかく | 面板视角参数';
+        }
+      });
+    });
+
+    $('confirm-batch-btn').addEventListener('click', async () => {
+      const text = $('batch-textarea').value.trim();
+      const category = $('batch-category').value.trim() || '新增术语';
+      if (!text) {
+        showToast('请先粘贴要导入的内容');
+        return;
+      }
+      try {
+        const res = await API.batchImport({ text, format: state.batchFormat, category });
+        state.words = res.words;
+        state.categories = res.categories;
+        rebuildPlayOrder(false);
+        $('batch-textarea').value = '';
+        $('batch-sheet').classList.remove('open');
+        renderAll();
+        showToast(
+          `导入完成：新增 ${res.stats.added} 条，合并更新 ${res.stats.updated} 条，跳过重复 ${res.stats.skipped} 条`,
+          3400
+        );
+      } catch (err) {
+        showToast(err.message);
+      }
+    });
+
+    // Export / Import
+    $('export-tsv-btn').addEventListener('click', () => {
+      API.exportTsvFile().then(() => showToast('已导出表格 (.tsv)'));
+    });
+
+    $('export-json-btn').addEventListener('click', () => {
+      API.exportJsonFile().then(() => showToast('已导出备份 (.json)'));
+    });
+
+    $('import-json-btn').addEventListener('click', () => $('json-file-input').click());
+    $('json-file-input').addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const payload = JSON.parse(String(reader.result || '{}'));
+          const res = await API.importJson(payload, false);
+          state.words = res.words;
+          state.categories = res.categories;
+          state.scratch = res.scratch;
+          rebuildPlayOrder(true);
+          renderAll();
+          showToast(`备份恢复成功：新增 ${res.stats.added} 条，更新 ${res.stats.updated} 条`);
+        } catch (err) {
+          showToast('恢复失败：' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+  }
+
+  // ---------- Boot ----------
+  async function boot() {
+    bindEvents();
+    try {
+      const data = await API.bootstrap();
+      state.words = data.words || [];
+      state.categories = data.categories || [];
+      state.scratch = data.scratch || { text: '', entries: [] };
+      state.settings = { ...state.settings, ...(data.settings || {}) };
+      state.remainingSec = (state.settings.durationMin || 15) * 60;
+      applyTheme();
+      populateJpVoiceSelect();
+      rebuildPlayOrder(true);
+      renderAll();
+    } catch (err) {
+      $('header-subtitle').textContent = '数据库连接失败';
+      showToast('无法连接后端数据库 API：' + err.message, 4500);
+    }
+  }
+
+  boot();
+})();
+
+  </script>
+</body>
+</html>

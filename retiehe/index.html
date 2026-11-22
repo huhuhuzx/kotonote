@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="言笺 KotoNote" />
+  <meta name="theme-color" content="#F2F2F7" id="theme-color-meta" />
+  <title>言笺 KotoNote · 数据库版三语背词</title>
+  <link rel="stylesheet" href="/css/style.css?v=20261122b" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">言</div>
+        <div class="brand-text">
+          <span class="brand-title">言笺 KotoNote</span>
+          <span class="brand-sub" id="header-subtitle">云数据库连接中…</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="theme-toggle-btn" aria-label="切换浅色深色模式" title="切换主题">🌙</button>
+        <button class="add-pill-btn" id="open-add-btn"><span>＋</span><span>添加新词</span></button>
+      </div>
+    </header>
+
+    <!-- In-app browser warning -->
+    <div class="env-banner" id="inapp-banner">
+      ⚠️ 检测到你在微信/QQ 等内置浏览器中打开，iPhone 内置浏览器通常会禁用网页朗读。请点击右上角 <strong>···</strong> 选择「在默认浏览器（Safari）中打开」。
+    </div>
+
+    <!-- Main Scroll Content -->
+    <main class="main-content">
+      <!-- 1. 学习模式 (Study Mode) -->
+      <section class="view-section active" id="view-study">
+        <div class="cat-strip" id="study-cat-strip"></div>
+
+        <div class="section-meta">
+          <span class="counter-pill" id="study-counter">0 / 0</span>
+          <div>
+            <button class="ghost-btn" id="study-shuffle-btn">🔀 换一词</button>
+            <button class="ghost-btn" id="study-edit-btn">✎ 编辑</button>
+          </div>
+        </div>
+
+        <div class="card study-card" id="study-card">
+          <div class="study-cat-row">
+            <span class="cat-pill-tag" id="study-word-cat">未分类</span>
+          </div>
+
+          <!-- 日语置顶放大 -->
+          <div class="lang-block jp-block" id="study-jp-block" data-speak="jp">
+            <div class="lang-header">
+              <span class="lang-badge badge-jp">日 · 日本語</span>
+              <span class="speak-hint">🔊 点按朗读</span>
+            </div>
+            <div class="jp-word-large" id="study-jp-text"></div>
+            <div class="jp-kana" id="study-jp-kana"></div>
+          </div>
+
+          <!-- 中文 -->
+          <div class="lang-block zh-block" id="study-zh-block" data-speak="zh">
+            <div class="lang-header">
+              <span class="lang-badge badge-zh">中 · 中文</span>
+              <span class="speak-hint">🔊</span>
+            </div>
+            <div class="zh-word" id="study-zh-text"></div>
+          </div>
+
+          <!-- 英文 -->
+          <div class="lang-block en-block" id="study-en-block" data-speak="en">
+            <div class="lang-header">
+              <span class="lang-badge badge-en">英 · English</span>
+              <span class="speak-hint">🔊</span>
+            </div>
+            <div class="en-word" id="study-en-text"></div>
+          </div>
+
+          <div class="study-controls">
+            <button class="nav-circle-btn" id="study-prev-btn" aria-label="上一个">‹</button>
+            <button class="speak-all-btn" id="study-speak-all-btn">
+              <span>▶</span>
+              <span>朗读 日 → 中 → 英</span>
+            </button>
+            <button class="nav-circle-btn" id="study-next-btn" aria-label="下一个">›</button>
+          </div>
+          <div class="swipe-tip">左右滑动卡片切换单词 · 点击任意语言行单独发声</div>
+        </div>
+
+        <!-- 底部便签功能 -->
+        <div class="notes-card">
+          <div class="notes-header">
+            <div class="notes-title-group">
+              <span class="notes-icon">✎</span>
+              <div>
+                <div class="notes-title" id="notes-title-label">本词便签</div>
+                <div class="save-status" id="note-save-status">已同步至数据库</div>
+              </div>
+            </div>
+            <div class="segmented" role="tablist">
+              <button class="seg-btn active" data-note-tab="word">本词便签</button>
+              <button class="seg-btn" data-note-tab="scratch">随手记</button>
+            </div>
+          </div>
+
+          <textarea
+            class="note-textarea"
+            id="note-textarea"
+            placeholder="随时记录例句、语境、助词搭配或记忆联想……"
+          ></textarea>
+
+          <div class="quick-append-row">
+            <input
+              type="text"
+              class="quick-input"
+              id="quick-note-input"
+              placeholder="快速追加一条带时间戳的新信息…"
+            />
+            <button class="quick-add-btn" id="quick-note-add-btn">追加</button>
+          </div>
+
+          <div class="note-entries" id="note-entries-list"></div>
+        </div>
+      </section>
+
+      <!-- 2. 背词模式 (Recite Mode) -->
+      <section class="view-section" id="view-recite">
+        <div class="cat-strip" id="recite-cat-strip"></div>
+
+        <div class="recite-hero" id="recite-hero">
+          <div class="recite-status-bar">
+            <div class="timer-display">
+              <span class="wave-bar-wrap" id="recite-wave">
+                <span class="wave-bar"></span>
+                <span class="wave-bar"></span>
+                <span class="wave-bar"></span>
+                <span class="wave-bar"></span>
+              </span>
+              <span id="recite-timer-text">15:00</span>
+            </div>
+            <button class="wake-chip" id="wake-lock-btn" title="防止屏幕自动息屏">
+              <span>☀️</span>
+              <span id="wake-lock-label">屏幕常亮</span>
+            </button>
+          </div>
+
+          <div class="order-indicator">
+            <span class="order-step" data-step="jp">1. 日语 ×2</span>
+            <span>→</span>
+            <span class="order-step" data-step="zh">2. 中文</span>
+            <span>→</span>
+            <span class="order-step" data-step="en">3. 英文</span>
+          </div>
+
+          <div class="recite-stage">
+            <div class="recite-row" data-lang="jp" id="recite-row-jp">
+              <div class="recite-row-top">
+                <span class="lang-badge badge-jp" id="recite-jp-badge">日 · ja-JP ×2</span>
+                <span class="counter-pill" id="recite-counter" style="padding:2px 9px;font-size:11px;">0 / 0</span>
+              </div>
+              <div class="recite-jp-text" id="recite-jp-text"></div>
+              <div class="recite-kana-text" id="recite-kana-text"></div>
+            </div>
+
+            <div class="recite-row" data-lang="zh" id="recite-row-zh">
+              <div class="recite-row-top">
+                <span class="lang-badge badge-zh">中 · zh-CN</span>
+              </div>
+              <div class="recite-zh-text" id="recite-zh-text"></div>
+            </div>
+
+            <div class="recite-row" data-lang="en" id="recite-row-en">
+              <div class="recite-row-top">
+                <span class="lang-badge badge-en">英 · en-US</span>
+              </div>
+              <div class="recite-en-text" id="recite-en-text"></div>
+            </div>
+          </div>
+
+          <div class="player-controls">
+            <button class="ctrl-btn" id="recite-prev-btn" aria-label="上一词">⏮</button>
+            <button class="play-main-btn" id="recite-play-btn" aria-label="开始或暂停朗读">▶</button>
+            <button class="ctrl-btn" id="recite-next-btn" aria-label="下一词">⏭</button>
+          </div>
+        </div>
+
+        <!-- 播放设置卡片 -->
+        <div class="card">
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">播放顺序</div>
+              <div class="setting-sub">顺序循环或智能洗牌乱序</div>
+            </div>
+            <div class="segmented">
+              <button class="seg-btn active" data-order="sequential">顺序</button>
+              <button class="seg-btn" data-order="shuffle">乱序</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">播放时长</div>
+              <div class="setting-sub">倒计时归零自动停止</div>
+            </div>
+            <div class="chip-group" id="duration-chips">
+              <button class="chip-btn active" data-min="15">15min</button>
+              <button class="chip-btn" data-min="30">30min</button>
+              <button class="chip-btn" data-min="45">45min</button>
+              <button class="chip-btn" data-min="60">1h</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">朗读语速</div>
+              <div class="setting-sub">调整日中英三语播报节奏</div>
+            </div>
+            <div class="chip-group" id="rate-chips">
+              <button class="chip-btn" data-rate="0.8">0.8x</button>
+              <button class="chip-btn active" data-rate="1.0">1.0x</button>
+              <button class="chip-btn" data-rate="1.2">1.2x</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">语种间隔</div>
+              <div class="setting-sub">日×2 / 中 / 英 之间停顿时长</div>
+            </div>
+            <div class="chip-group" id="pause-chips">
+              <button class="chip-btn" data-pause="2.0">2.0s</button>
+              <button class="chip-btn active" data-pause="2.5">2.5s</button>
+              <button class="chip-btn" data-pause="3.0">3.0s</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">日语发音人</div>
+              <div class="setting-sub">自动优选自然神经网络语音</div>
+            </div>
+            <select id="jp-voice-select" class="voice-select" aria-label="选择日语发音人">
+              <option value="">自动优选（最自然）</option>
+            </select>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">重置计时</div>
+              <div class="setting-sub">将当前剩余时间恢复为所选时长</div>
+            </div>
+            <button class="chip-btn" id="reset-timer-btn">↺ 重置</button>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">iPhone 语音自检</div>
+              <div class="setting-sub">请确保关闭静音开关并在 Safari 打开</div>
+            </div>
+            <button class="chip-btn" id="test-voice-btn">🔊 测试发声</button>
+          </div>
+          <div class="voice-tip-box">
+            <strong>💡 让 iPhone 日语发音更自然：</strong>前往 iPhone <strong>设置 → 辅助功能 → 朗读内容 → 声音 → 日语</strong>，下载 <strong>Kyoko（优化版）</strong>、<strong>Otoya（优化版）</strong> 或 <strong>Hattori</strong> 后重开 Safari，本软件会自动优先使用高音质自然人声。
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. 术语库 (Lexicon) -->
+      <section class="view-section" id="view-lexicon">
+        <div class="search-bar-wrap">
+          <span class="search-icon">🔍</span>
+          <input
+            type="search"
+            class="search-input"
+            id="lexicon-search"
+            placeholder="搜索日语、假名、中文、英文、分类或便签…"
+          />
+        </div>
+
+        <div class="cat-strip" id="lexicon-cat-strip"></div>
+
+        <div class="lexicon-tools">
+          <button class="tool-btn" id="open-batch-btn">📥 批量导入</button>
+          <button class="tool-btn" id="export-tsv-btn">📊 导出表格</button>
+          <button class="tool-btn" id="export-json-btn">📤 备份JSON</button>
+          <button class="tool-btn" id="import-json-btn">🔄 恢复备份</button>
+          <input type="file" id="json-file-input" accept=".json,application/json" style="display:none" />
+        </div>
+
+        <div class="section-meta" style="margin-bottom:10px;">
+          <span class="counter-pill" id="lexicon-count-pill">加载中…</span>
+          <button class="ghost-btn" id="lexicon-add-btn">＋ 新增术语</button>
+        </div>
+
+        <div class="word-list" id="word-list"></div>
+      </section>
+    </main>
+
+    <!-- Bottom Tab Navigation -->
+    <nav class="tab-bar" aria-label="主导航">
+      <button class="tab-item active" data-tab="study">
+        <span class="tab-icon">📖</span>
+        <span>学习模式</span>
+      </button>
+      <button class="tab-item" data-tab="recite">
+        <span class="tab-icon">🎧</span>
+        <span>背词模式</span>
+      </button>
+      <button class="tab-item" data-tab="lexicon">
+        <span class="tab-icon">🗂️</span>
+        <span>术语库</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Add / Edit Word Bottom Sheet -->
+  <div class="sheet-backdrop" id="word-sheet">
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title" id="word-sheet-title">添加新词条</div>
+        <button class="ghost-btn" id="close-word-sheet">关闭</button>
+      </div>
+      <form id="word-form">
+        <input type="hidden" id="edit-word-id" value="" />
+        <div class="form-group">
+          <label class="form-label" for="input-jp">日语 (日本語)</label>
+          <input type="text" class="form-input" id="input-jp" placeholder="例：視野角" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="input-kana">读音 / 假名（可选）</label>
+          <input type="text" class="form-input" id="input-kana" placeholder="例：しやかく" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="input-zh">中文</label>
+          <input type="text" class="form-input" id="input-zh" placeholder="例：视角" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="input-en">英文 (English)</label>
+          <input type="text" class="form-input" id="input-en" placeholder="例：View Angles" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="input-category">分类标签（可选，可直接输入新分类）</label>
+          <input type="text" class="form-input" id="input-category" list="category-datalist" placeholder="例：显示面板与光学触控" />
+          <datalist id="category-datalist"></datalist>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="input-note">备注 / 初始便签（可选）</label>
+          <textarea class="form-textarea" id="input-note" placeholder="可填写例句、场景说明或记忆点…"></textarea>
+        </div>
+        <button type="submit" class="primary-block-btn" id="save-word-submit">保存到数据库</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Batch Import Bottom Sheet -->
+  <div class="sheet-backdrop" id="batch-sheet">
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title">批量导入到数据库</div>
+        <button class="ghost-btn" id="close-batch-sheet">关闭</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">导入格式</label>
+        <div class="segmented" style="width:100%;display:grid;grid-template-columns:1fr 1fr;">
+          <button type="button" class="seg-btn active" data-batch-fmt="tsv">表格粘贴（中 ⇥ 英 ⇥ 日 ⇥ 备注）</button>
+          <button type="button" class="seg-btn" data-batch-fmt="pipe">竖线分隔（日 | 中 | 英 | 假名）</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="batch-category">导入归属分类</label>
+        <input type="text" class="form-input" id="batch-category" list="category-datalist" value="新增术语" placeholder="例：显示面板与光学触控" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="batch-textarea" id="batch-hint-label">
+          直接从 Excel / WPS / 飞书复制粘贴（自动识别多行备注与去重合并）：
+        </label>
+        <textarea
+          class="form-textarea"
+          id="batch-textarea"
+          style="min-height:160px;"
+          placeholder="视角	View Angles	視野角（しやかく）	&#10;对比度	Contrast Ratio	コントラスト比（コントラストひ）	"
+        ></textarea>
+      </div>
+      <button class="primary-block-btn" id="confirm-batch-btn">写入云数据库</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/js/api.js?v=20261122b"></script>
+  <script src="/js/speech.js?v=20261122b"></script>
+  <script src="/js/app.js?v=20261122b"></script>
+</body>
+</html>

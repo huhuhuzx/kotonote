@@ -1,0 +1,22 @@
+=== 言笺 KotoNote · 热铁盒网页托管一键上传包 ===
+
+上传方法：
+1. 将本压缩包解压，把里面的全部文件和文件夹直接上传到热铁盒站点根目录（https://kotonote.rth1.xyz/）：
+   - index.html
+   - css/style.css
+   - js/api.js
+   - js/speech.js
+   - js/app.js
+   - api/kotonote.py
+   - data/initial_terms.tsv
+
+2. 上传完成后，浏览器访问测试云函数是否正常运行：
+   https://kotonote.rth1.xyz/api/kotonote.py?action=health
+   看到 {"status": "ok", "storage": "Retiehe KV Database", "wordCount": 187} 即表示成功！
+
+3. 首次访问会自动将全部 187 条专业术语写入热铁盒内置 KV 数据库（库名：kotonote_db）。
+   之后在手机或电脑上新增词条、批量粘贴 Excel 词表、写便签，都会实时保存在云端数据库，多端同步。
+
+4. iPhone 使用提示：
+   - 请务必使用 Safari 打开（不要在微信/QQ内直接打开），并关闭机身静音开关。
+   - 点击 Safari 底部「分享 → 添加到主屏幕」即可全屏使用。
