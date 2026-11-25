@@ -4,6 +4,8 @@ window.KotoSpeech = (() => {
   const isIOS = /iP(hone|ad|od)/i.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+  const KANA_ONLY_RE = /^[ぁ-んァ-ヶー・\s⓪①②③④⑤⑥⑦⑧⑨〇]+$/;
+
   let voices = [];
   let sessionId = 0;
   let currentUtterance = null;
@@ -30,7 +32,6 @@ window.KotoSpeech = (() => {
   if ('speechSynthesis' in window) {
     loadVoices();
     window.speechSynthesis.onvoiceschanged = notifyVoicesChanged;
-    // iOS Safari occasionally populates voices asynchronously without firing onvoiceschanged reliably
     setTimeout(notifyVoicesChanged, 400);
     setTimeout(notifyVoicesChanged, 1200);
   }
@@ -53,21 +54,83 @@ window.KotoSpeech = (() => {
     } catch {}
   }
 
-  function cleanForSpeech(text, langCode) {
-    let s = String(text || '').trim();
-    if (!s) return '';
-    // Strip pitch accent markers
-    s = s.replace(/[⓪①②③④⑤⑥⑦⑧⑨〇]/g, '');
+  function stripPitchAccents(s) {
+    return String(s || '').replace(/[⓪①②③④⑤⑥⑦⑧⑨〇]/g, '');
+  }
+
+  function resolveJapaneseSpeechText(jpRaw, kanaRaw = '') {
+    const kana = stripPitchAccents(kanaRaw).trim();
+    const jp = stripPitchAccents(jpRaw).trim();
+
+    if (kana) {
+      return kana
+        .replace(/[\/・、\n]+/g, '、 ')
+        .replace(/[~～]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    if (!jp) return '';
+
+    const lines = jp.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 2 && KANA_ONLY_RE.test(lines[1]) && !KANA_ONLY_RE.test(lines[0])) {
+      return lines[1]
+        .replace(/[\/・、]+/g, '、 ')
+        .replace(/[~～]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    const wsParts = jp.split(/[\s　]+/).filter(Boolean);
+    if (wsParts.length === 2 && KANA_ONLY_RE.test(wsParts[0]) && !KANA_ONLY_RE.test(wsParts[1])) {
+      return wsParts[0].replace(/[~～]/g, '').trim();
+    }
+
+    const segments = jp.split(/[\/・、\n]+/);
+    const out = [];
+    for (let seg of segments) {
+      seg = seg.trim();
+      if (!seg) continue;
+
+      seg = seg.replace(/[（(][^）)]*[；;][^）)]*[）)]/g, '');
+
+      seg = seg.replace(/([^（()）]+?)[（(]([ぁ-んァ-ヶー・\s]+)[）)]/g, (_, prefix, readingRaw) => {
+        const reading = readingRaw.trim();
+        const kataRuns = reading.match(/[ァ-ヶー]+/g);
+        if (kataRuns && kataRuns.some((k) => prefix.includes(k))) {
+          return reading;
+        }
+        const kanjiTail = prefix.match(/[一-龥々][一-龥々ぁ-ん]*$/);
+        if (kanjiTail) {
+          return prefix.slice(0, kanjiTail.index) + reading;
+        }
+        return reading;
+      });
+
+      const sp = seg.split(/[\s　]+/).filter(Boolean);
+      if (sp.length === 2 && KANA_ONLY_RE.test(sp[0]) && !KANA_ONLY_RE.test(sp[1])) {
+        seg = sp[0];
+      } else {
+        const cm = seg.match(/^([ぁ-んー]+)([一-龥々]+)$/);
+        if (cm) seg = cm[1];
+      }
+
+      seg = seg.replace(/[~～]/g, '').replace(/\s+/g, ' ').trim();
+      if (seg && (!out.length || out[out.length - 1] !== seg)) {
+        out.push(seg);
+      }
+    }
+
+    return out.join('、 ');
+  }
+
+  function cleanForSpeech(text, langCode, kanaHint = '') {
     if (langCode.startsWith('ja')) {
-      // Remove inline furigana parentheses like 黒鉛（こくえん） -> 黒鉛 to avoid reading twice
-      s = s.replace(/（[ぁ-んァ-ヶー・\s]+）/g, '');
-      s = s.replace(/\([ぁ-んァ-ヶー・\s]+\)/g, '');
-      // Remove inline Chinese annotations inside JP cell if any
-      s = s.replace(/（[^）]*[；;][^）]*）/g, '');
-      // Use natural Japanese pause punctuation instead of slashes/dots
-      s = s.replace(/[\/・\n]+/g, '、 ');
-      s = s.replace(/[~～]/g, '');
-    } else if (langCode.startsWith('zh')) {
+      return resolveJapaneseSpeechText(text, kanaHint);
+    }
+    let s = stripPitchAccents(text).trim();
+    if (!s) return '';
+    if (langCode.startsWith('zh')) {
       s = s.replace(/[\/；;\n]+/g, '，');
     } else {
       s = s.replace(/[\/；;\n]+/g, ', ').replace(/[~～]/g, '');
@@ -86,19 +149,16 @@ window.KotoSpeech = (() => {
     if (lang === target) score += 25;
     else if (lang.startsWith(target.slice(0, 2))) score += 10;
 
-    // Strongly favor Neural / Natural / Enhanced / Premium voices (least robotic)
     if (/premium/i.test(name) || /premium/i.test(uri)) score += 120;
     if (/enhanced|优化|高品質|高音質/i.test(name) || /enhanced/i.test(uri)) score += 110;
     if (/natural|neural|wavenet|online/i.test(name)) score += 115;
     if (/google\s*日本語|google.*japanese/i.test(name)) score += 105;
 
     if (isJa) {
-      // Known natural-sounding Japanese voices across Windows Edge, macOS/iOS, Chrome, Android
       if (/nanami|keita/i.test(name)) score += 65;
       if (/hattori|o-?ren/i.test(name)) score += 55;
       if (/kyoko|otoya/i.test(name)) score += 40;
       if (/shiori|daichi|mayu|naoki|aoi/i.test(name)) score += 50;
-      // Penalize legacy robotic desktop voices when better ones exist
       if (/haruka|ayumi|ichiro|sayaka|espeak|festival|compact/i.test(name)) score -= 45;
     } else if (target.startsWith('zh')) {
       if (/xiaoxiao|yunxi|ting-?ting|tingting|meijia|sinji|google/i.test(name)) score += 45;
@@ -106,16 +166,12 @@ window.KotoSpeech = (() => {
       if (/aria|jenny|guy|samantha|daniel|karen|alex|google/i.test(name)) score += 45;
     }
 
-    // On iOS WebKit, Siri voices frequently drop silently in speechSynthesis; avoid in auto-selection
     if (isIOS && /\bsiri\b/i.test(name)) {
       score -= 200;
     }
-
-    // On iOS, prefer localService among equal-quality voices for reliability
     if (isIOS && v.localService) {
       score += 12;
     }
-
     return score;
   }
 
@@ -181,7 +237,7 @@ window.KotoSpeech = (() => {
     });
   }
 
-  function speak(text, langCode, { rate = 1.0, syncStart = false, preferredVoiceName = '', onNotice = null } = {}) {
+  function speak(text, langCode, { rate = 1.0, syncStart = false, preferredVoiceName = '', kanaHint = '', onNotice = null } = {}) {
     return new Promise((resolve) => {
       if (!('speechSynthesis' in window)) {
         if (onNotice) onNotice('当前浏览器不支持语音合成，请改用 Safari');
@@ -189,7 +245,7 @@ window.KotoSpeech = (() => {
         return;
       }
 
-      const spoken = cleanForSpeech(text, langCode);
+      const spoken = cleanForSpeech(text, langCode, kanaHint);
       if (!spoken) {
         resolve(true);
         return;
@@ -214,7 +270,6 @@ window.KotoSpeech = (() => {
         }
         const utt = new SpeechSynthesisUtterance(spoken);
         utt.lang = langCode;
-        // Slightly gentler pacing for Japanese reduces robotic clipped cadence
         const effectiveRate = langCode.startsWith('ja')
           ? Math.max(0.72, Math.min(1.25, Number(rate || 1.0) * 0.94))
           : Number(rate || 1.0);
@@ -277,6 +332,7 @@ window.KotoSpeech = (() => {
     wakeAudioRoute,
     getJapaneseVoices,
     pickSafeVoice,
+    resolveJapaneseSpeechText,
     cleanForSpeech,
     cancel,
     getSessionId,

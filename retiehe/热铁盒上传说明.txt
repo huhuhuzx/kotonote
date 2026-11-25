@@ -1,22 +1,29 @@
-=== 言笺 KotoNote · 热铁盒网页托管一键上传包 ===
+=== 言笺 KotoNote · 热铁盒网页托管一键上传包 (v4 锁屏后台播放版) ===
 
 上传方法：
-1. 将本压缩包解压，把里面的全部文件和文件夹直接上传到热铁盒站点根目录（https://kotonote.rth1.xyz/）：
+1. 将本目录（kotonote-retiehe-v4）里的全部文件和文件夹直接覆盖上传到热铁盒站点根目录（https://kotonote.rth1.xyz/）：
    - index.html
    - css/style.css
    - js/api.js
+   - js/excel.js
    - js/speech.js
+   - js/bg_audio.js  （v4 新增：锁屏/后台无缝音频播放 + 本地缓存 + MediaSession）
    - js/app.js
-   - api/kotonote.py
+   - api/kotonote.py  （v4 升级：新增 TTS 音频代理接口，零受限标准库依赖）
    - data/initial_terms.tsv
 
-2. 上传完成后，浏览器访问测试云函数是否正常运行：
-   https://kotonote.rth1.xyz/api/kotonote.py?action=health
-   看到 {"status": "ok", "storage": "Retiehe KV Database", "wordCount": 187} 即表示成功！
+2. v4 核心升级内容：
+   - 真正支持 iPhone / 安卓 切后台与锁屏连续背词：
+     * 默认开启「🔒 锁屏音频」模式，通过热铁盒后端代理免费日/中/英语音（免注册免配置，自动有道/百度兜底）。
+     * 前端将每个词的「日×2 → 0.85s 停顿 → 中 → 语种停顿 → 英 → 词间停顿」无缝合成为一整段连续音频流，并提前预加载下一词，彻底规避 iOS 锁屏后定时器被冻结的问题。
+     * 接入锁屏媒体卡片（MediaSession）：锁屏界面、灵动岛/控制中心显示当前词条，支持锁屏和蓝牙耳机直接暂停/上一词/下一词。
+     * 自动将听过的音频缓存至手机本地 IndexedDB，二次复习零流量、断网也能锁屏播放。
+   - 可选升级微软 Azure 神经网络高音质语音：
+     * 如需更自然的微软日语人声（Nanami / Keita 等，官方每月 50 万字符免费），在背词设置中切换到「Azure 高音质」填入 Key 与 Region 即可生效。
+   - 保留 v3 全部功能：严格按假名朗读日语、Excel (.xlsx/.xls/.csv) 多工作表导入、术语库点按日语发声、原 KV 数据库词库与便签升级后完整保留。
 
-3. 首次访问会自动将全部 187 条专业术语写入热铁盒内置 KV 数据库（库名：kotonote_db）。
-   之后在手机或电脑上新增词条、批量粘贴 Excel 词表、写便签，都会实时保存在云端数据库，多端同步。
-
-4. iPhone 使用提示：
-   - 请务必使用 Safari 打开（不要在微信/QQ内直接打开），并关闭机身静音开关。
-   - 点击 Safari 底部「分享 → 添加到主屏幕」即可全屏使用。
+3. 验证方法：
+   - 上传覆盖后，浏览器访问：https://kotonote.rth1.xyz/api/kotonote.py?action=health
+     看到 "version": 4, "ttsReady": true 即表示后端生效。
+   - 打开首页进入「背词模式」点击「🔊 测试发声」，听到日/中/英三语播报后，即可点「▶」开始并直接锁屏或切后台体验。
+   - （如之前上传过临时测试文件 api/net_test.py，记得删掉。）

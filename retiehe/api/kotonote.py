@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-言笺 KotoNote · 热铁盒网页托管 Python 云函数 + KV 数据库后端（零受限标准库依赖版）
+言笺 KotoNote v4 · 热铁盒网页托管 Python 云函数 + KV 数据库 + 锁屏音频 TTS 代理后端
 部署路径: /api/kotonote.py
-仅强制依赖内置模块 json，彻底规避云函数沙箱 ImportError 限制。
+零受限标准库依赖：仅强制依赖 json，网络请求使用热铁盒内置 requests，Base64 纯 Python 实现。
 """
 import json
+
+try:
+    import requests as _requests
+except Exception:
+    _requests = globals().get("requests", None)
 
 try:
     from datetime import datetime as _dt
@@ -26,11 +31,50 @@ DEFAULT_SETTINGS = {
     "rate": 1.0,
     "langPauseSec": 2.5,
     "jpVoice": "",
+    "audioEngine": "bg_audio",
+    "ttsProvider": "free",
+    "azureRegion": "eastasia",
+    "azureKey": "",
+    "azureJpVoice": "ja-JP-NanamiNeural",
 }
 
-SEED_WORDS_JSON = '[{"jp": "パラメータ", "kana": "", "zh": "参数", "en": "parameter", "category": "测试与硬件通用", "note": "（日常语境的引申义），表示对事物的限制条件"}, {"jp": "同等", "kana": "どうとう", "zh": "同等", "en": "equal / equivalent", "category": "测试与硬件通用", "note": ""}, {"jp": "バイアス", "kana": "", "zh": "偏差/偏置/偏见", "en": "bias", "category": "测试与硬件通用", "note": "统计学、机器学习中常译「偏差」，AI大模型语境常译「偏置」，社会语境中一般译为「偏见」。"}, {"jp": "縮小", "kana": "しゅくしょう", "zh": "缩小；缩小规模", "en": "reduce / shrink / scale down", "category": "测试与硬件通用", "note": ""}, {"jp": "グラファイト/黒鉛（こくえん）", "kana": "", "zh": "石墨", "en": "graphite", "category": "测试与硬件通用", "note": ""}, {"jp": "変化（へんか）/バリエーション", "kana": "", "zh": "变化；变动；", "en": "variation", "category": "测试与硬件通用", "note": ""}, {"jp": "ミリワット", "kana": "", "zh": "毫瓦 (mW)", "en": "milliwatt (mW)", "category": "测试与硬件通用", "note": ""}, {"jp": "", "kana": "", "zh": "显示驱动芯片", "en": "DDIC = Display Driver IC", "category": "测试与硬件通用", "note": "屏幕核心驱动 IC，含源极 / 栅极驱动、TDDI 触控显示一体芯片"}, {"jp": "", "kana": "", "zh": "动态工作功耗 / 有源功耗", "en": "Active Power", "category": "测试与硬件通用", "note": "DDIC active power：显示驱动芯片正常点亮画面、刷新像素时的动态运行功耗，单位 mW（毫瓦）"}, {"jp": "消費電力", "kana": "しょうひでんりょく", "zh": "功耗", "en": "power consumption", "category": "测试与硬件通用", "note": "Active power consumption\\n动态工作功耗 = DDIC active power\\n屏幕亮屏刷新、正常显示画面时驱动芯片产生的功耗"}, {"jp": "解像度", "kana": "", "zh": "分辨率/清晰率", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ディスプレー", "kana": "", "zh": "显示器", "en": "display", "category": "测试与硬件通用", "note": ""}, {"jp": "組電池/電池パック", "kana": "", "zh": "组电池", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "単電池", "kana": "", "zh": "单电池", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "過充電試験", "kana": "", "zh": "过充试验", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "フェイル", "kana": "", "zh": "故障", "en": "fail", "category": "测试与硬件通用", "note": ""}, {"jp": "シャットダウン", "kana": "", "zh": "关机", "en": "shutdown", "category": "测试与硬件通用", "note": ""}, {"jp": "パラメーター", "kana": "", "zh": "参数/变量", "en": "parameter", "category": "测试与硬件通用", "note": ""}, {"jp": "インターフェース", "kana": "", "zh": "接口", "en": "interface", "category": "测试与硬件通用", "note": ""}, {"jp": "検証", "kana": "けんしょう", "zh": "验证", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "単体", "kana": "たんたい〇", "zh": "单体", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "デフォルト値", "kana": "", "zh": "默认值", "en": "default", "category": "测试与硬件通用", "note": ""}, {"jp": "", "kana": "", "zh": "延迟", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "リアルタイム性", "kana": "", "zh": "实时性", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ドッキング", "kana": "", "zh": "对接", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "タイピング", "kana": "", "zh": "输入", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "プロセッサ/CPU", "kana": "", "zh": "处理器", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ストレージ", "kana": "", "zh": "储存", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ベンダ", "kana": "", "zh": "供应商", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "スナップ", "kana": "", "zh": "卡扣/按扣", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "縦線/横線", "kana": "", "zh": "竖线/横线", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "スペック", "kana": "", "zh": "规格、参数", "en": "spec", "category": "测试与硬件通用", "note": ""}, {"jp": "アイコン", "kana": "", "zh": "图标", "en": "icon", "category": "测试与硬件通用", "note": ""}, {"jp": "ドロップテスト/落下試験", "kana": "", "zh": "跌落测试", "en": "drop", "category": "测试与硬件通用", "note": ""}, {"jp": "微落下試験", "kana": "", "zh": "微跌测试", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "気密性", "kana": "", "zh": "气密", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "図面", "kana": "", "zh": "图纸", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "シールド", "kana": "", "zh": "屏蔽罩/保护罩", "en": "EMI～", "category": "测试与硬件通用", "note": ""}, {"jp": "ファブリック・導電布", "kana": "どうでんふ", "zh": "导电布", "en": "conductive fabric", "category": "测试与硬件通用", "note": ""}, {"jp": "グラファイトシート", "kana": "", "zh": "石墨片", "en": "graphite", "category": "测试与硬件通用", "note": ""}, {"jp": "敷き詰める", "kana": "", "zh": "铺满; 布满; 铺满整个表面", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "記載⓪", "kana": "", "zh": "写上", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "仕様", "kana": "しよう", "zh": "规格；方式；方法", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "引き延ばす効果", "kana": "", "zh": "延伸效果（叠层侧视图用）", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "フレキシブルプリント配線板", "kana": "", "zh": "柔性线路板", "en": "Flexible Printed Circuits", "category": "测试与硬件通用", "note": ""}, {"jp": "端", "kana": "はし⓪", "zh": "边缘；末端；起点；", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "全張り", "kana": "ぜんばっり", "zh": "全贴合", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "空気抜け", "kana": "", "zh": "排气；抽气；放气", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "追記", "kana": "ついき⓪", "zh": "追加记录；补充说明", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "コーティング", "kana": "", "zh": "涂层；镀膜；覆膜", "en": "coating", "category": "测试与硬件通用", "note": ""}, {"jp": "クラック", "kana": "", "zh": "裂缝", "en": "crack", "category": "测试与硬件通用", "note": ""}, {"jp": "スジ", "kana": "", "zh": "条纹", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "勝手に再起動かかる", "kana": "", "zh": "自动重启", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "電源が付かなくなった", "kana": "", "zh": "无法开机", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "フリーズする", "kana": "", "zh": "卡死/卡住", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "傷", "kana": "", "zh": "划痕", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "初期化", "kana": "", "zh": "恢复出厂设置", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "クロス検証", "kana": "", "zh": "交叉验证", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "BTBインターフェース", "kana": "", "zh": "BTB接口", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "コンポーネント", "kana": "", "zh": "组件", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "バックライトは点灯する", "kana": "", "zh": "背光点亮", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ビルド番号", "kana": "", "zh": "版本号", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "通常の端末", "kana": "", "zh": "正常设备/机器", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "電源投入不可", "kana": "", "zh": "无法上电", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "電源落ちる / 電源が切れる", "kana": "", "zh": "断电", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "筐体⓪", "kana": "きょうたい", "zh": "外壳/壳体", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "水没検知シール / すいぼつ / 浸水ラベル / しんすい⓪", "kana": "", "zh": "进水/防水标签", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "~にじみ無し", "kana": "", "zh": "无渗色", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "勘合⓪", "kana": "かんごう", "zh": "对照/核对/验证", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "端子①", "kana": "たんし", "zh": "接头；接线端；端子", "en": "", "category": "测试与硬件通用", "note": "CN=pin脚"}, {"jp": "焼き付き", "kana": "", "zh": "烧屏", "en": "Screen Burn-in", "category": "测试与硬件通用", "note": ""}, {"jp": "デモ画面", "kana": "", "zh": "演示画面", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "黄色まだら / 黄色かかった", "kana": "", "zh": "黄斑 / 泛黄", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "お客様の了承", "kana": "", "zh": "顾客/客户同意", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "色味③", "kana": "いろみ", "zh": "色深/色彩", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "追加解析に回す", "kana": "", "zh": "进一步分析", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "症状はDisplayについて回る", "kana": "", "zh": "现象随屏走", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "インフォ", "kana": "", "zh": "咨询窗口", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "たらいまわしにされた", "kana": "", "zh": "遭到推诿", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "預かり修理に納得されない", "kana": "", "zh": "（客户）不接受寄存维修", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "テクニカルアドバイザー", "kana": "", "zh": "技术顾问", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "バイブ", "kana": "", "zh": "震动", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "まえだおし⓪  前倒しする・前倒しになる / 繰り上げる・早める", "kana": "", "zh": "提前", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "オープン", "kana": "", "zh": "开路（膜缺失 / 刻穿 / 过孔处断裂）", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "仕組み", "kana": "しくみ⓪", "zh": "计划，安排", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ファーム・ / ファームウエア", "kana": "", "zh": "固件", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "調整がしょうじたときに", "kana": "", "zh": "", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "セット側", "kana": "", "zh": "整机", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "銅シート・銅のパーツ（零件；部件；配件）", "kana": "", "zh": "铜片", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "けいじょう⓪", "kana": "", "zh": "形状", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ワースト条件", "kana": "", "zh": "最坏情况/最差条件", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "性能比較", "kana": "", "zh": "", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "機種①②", "kana": "きしゅ", "zh": "机型", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "あくまでも", "kana": "", "zh": "终究", "en": "", "category": "测试与硬件通用", "note": "これはあくまでもネット上で収集した情報です。"}, {"jp": "ミドルフレーム", "kana": "", "zh": "中框", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ソリューション", "kana": "", "zh": "解决方案", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "逆算", "kana": "ぎゃくさん⓪", "zh": "倒算；倒推", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "バックプレート", "kana": "", "zh": "背板", "en": "backing plate", "category": "测试与硬件通用", "note": ""}, {"jp": "視野角", "kana": "しやかく", "zh": "视角", "en": "View Angles", "category": "显示面板与光学触控", "note": ""}, {"jp": "コントラスト比", "kana": "コントラストひ", "zh": "对比度", "en": "Contrast Ratio", "category": "显示面板与光学触控", "note": ""}, {"jp": "応答時間", "kana": "おうとうじかん", "zh": "响应时间", "en": "Response Time", "category": "显示面板与光学触控", "note": ""}, {"jp": "斜め色シフト", "kana": "ななめいろシフト", "zh": "偏角色移/侧视色偏", "en": "Off-angle color shift", "category": "显示面板与光学触控", "note": ""}, {"jp": "色再現範囲（いろさいげんはんい） / カラーガマット", "kana": "", "zh": "色域", "en": "Color Gamut", "category": "显示面板与光学触控", "note": ""}, {"jp": "黒レベル", "kana": "くろレベル", "zh": "黑色亮度/黑位", "en": "Black", "category": "显示面板与光学触控", "note": ""}, {"jp": "輝度減衰", "kana": "きどげんすい", "zh": "亮度衰减", "en": "Luminance Decay", "category": "显示面板与光学触控", "note": ""}, {"jp": "色均一性", "kana": "いろきんいつせい", "zh": "色彩均匀度", "en": "Color uniformity", "category": "显示面板与光学触控", "note": ""}, {"jp": "寿命", "kana": "じゅみょう", "zh": "使用寿命", "en": "Life Time", "category": "显示面板与光学触控", "note": ""}, {"jp": "焼き付き", "kana": "やきつき", "zh": "图像残留/烧屏", "en": "Image Sticking", "category": "显示面板与光学触控", "note": ""}, {"jp": "クロストーク", "kana": "", "zh": "串扰", "en": "Crosstalk", "category": "显示面板与光学触控", "note": ""}, {"jp": "常時表示（じょうじひょうじ） / AOD", "kana": "", "zh": "息屏显示", "en": "AOD（Always On Display）", "category": "显示面板与光学触控", "note": ""}, {"jp": "OLEDアレイ", "kana": "", "zh": "有机发光二极管阵列", "en": "OLED Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "パッシブマトリクスOLED", "kana": "", "zh": "被动矩阵有机发光二极管", "en": "Passive Matrix OLED (PMOLED)", "category": "显示面板与光学触控", "note": ""}, {"jp": "アクティブマトリクスOLED", "kana": "", "zh": "主动矩阵有机发光二极管", "en": "Active Matrix OLED (AMOLED)", "category": "显示面板与光学触控", "note": ""}, {"jp": "薄膜トランジスタ", "kana": "", "zh": "薄膜晶体管", "en": "Thin Film Transistor (TFT)", "category": "显示面板与光学触控", "note": ""}, {"jp": "ピクセルアレイ", "kana": "", "zh": "像素阵列", "en": "Pixel Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "サブピクセル", "kana": "", "zh": "子像素", "en": "Sub-pixel", "category": "显示面板与光学触控", "note": ""}, {"jp": "ペンタイル配列", "kana": "", "zh": "Pentile排列", "en": "Pentile Matrix", "category": "显示面板与光学触控", "note": ""}, {"jp": "ストライプ配列", "kana": "", "zh": "条纹排列", "en": "Stripe Arrangement", "category": "显示面板与光学触控", "note": ""}, {"jp": "デルタ配列", "kana": "", "zh": "Delta排列", "en": "Delta Arrangement", "category": "显示面板与光学触控", "note": ""}, {"jp": "有機発光層", "kana": "", "zh": "有机发光层", "en": "Organic Emitting Layer", "category": "显示面板与光学触控", "note": ""}, {"jp": "正孔輸送層", "kana": "", "zh": "空穴传输层", "en": "Hole Transport Layer (HTL)", "category": "显示面板与光学触控", "note": ""}, {"jp": "電子輸送層", "kana": "", "zh": "电子传输层", "en": "Electron Transport Layer (ETL)", "category": "显示面板与光学触控", "note": ""}, {"jp": "アノード", "kana": "", "zh": "阳极", "en": "Anode", "category": "显示面板与光学触控", "note": ""}, {"jp": "カソード", "kana": "", "zh": "阴极", "en": "Cathode", "category": "显示面板与光学触控", "note": ""}, {"jp": "基板", "kana": "", "zh": "衬底", "en": "Substrate", "category": "显示面板与光学触控", "note": ""}, {"jp": "蒸着", "kana": "", "zh": "蒸镀", "en": "Vacuum Thermal Evaporation", "category": "显示面板与光学触控", "note": ""}, {"jp": "インクジェット印刷", "kana": "", "zh": "喷墨打印", "en": "Inkjet Printing", "category": "显示面板与光学触控", "note": ""}, {"jp": "フレキシブルOLEDアレイ", "kana": "", "zh": "柔性OLED阵列", "en": "Flexible OLED Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "折りたたみ式OLEDアレイ", "kana": "", "zh": "折叠OLED阵列", "en": "Foldable OLED Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "ウェアラブルOLEDアレイ", "kana": "", "zh": "可穿戴OLED阵列", "en": "Wearable OLED Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "OLEDセンシングアレイ", "kana": "", "zh": "OLED传感阵列", "en": "OLED Sensing Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "光遺伝学刺激アレイ", "kana": "", "zh": "光遗传刺激阵列", "en": "Optogenetic Stimulation Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "歩留まり", "kana": "", "zh": "良率", "en": "Yield", "category": "显示面板与光学触控", "note": ""}, {"jp": "開口率", "kana": "", "zh": "开口率", "en": "Aperture Ratio", "category": "显示面板与光学触控", "note": ""}, {"jp": "近眼表示", "kana": "", "zh": "近眼显示", "en": "Near-eye Display", "category": "显示面板与光学触控", "note": ""}, {"jp": "CNCカッティング", "kana": "", "zh": "CNC切割", "en": "CNC Cutting (Computer Numerical Control Cutting)", "category": "显示面板与光学触控", "note": "CNC切割通过预编程的加工代码，用自动化设备，控制切割刀具/高能束（激光、等离子等）按照设定路径自动切割金属、塑料、木材、玻璃、复合材料等各类材料"}, {"jp": "防指紋コーティング", "kana": "ぼうしもんコーティング", "zh": "抗指纹涂层 / AF 镀膜", "en": "anti-fingerprint coating / AF coating", "category": "显示面板与光学触控", "note": "日语显示 / 电子行业中，「指紋防止」是最常用的标准译法；\\n「アンチフィンガープリント」为片假名音译，多用于技术资料和产品规格书；\\n「防指紋」（ぼうしもん）也是常见写法，多用于镀膜、涂层相关语境"}, {"jp": "汚れ防止コート / アンチスマッジ", "kana": "", "zh": "防污膜/玻璃（疏水防尘）", "en": "Anti-Smudge/AS", "category": "显示面板与光学触控", "note": ""}, {"jp": "アンチリフレクション / 反射防止コーティング", "kana": "", "zh": "减反射膜 / AR 膜/抗反增透膜", "en": "Anti-Reflection coating (AR)", "category": "显示面板与光学触控", "note": ""}, {"jp": "反射防止複合コート", "kana": "", "zh": "AR 复合镀膜", "en": "AR composite coating", "category": "显示面板与光学触控", "note": ""}, {"jp": "反射防止処理", "kana": "", "zh": "减反射处理", "en": "Anti-reflection treatment", "category": "显示面板与光学触控", "note": ""}, {"jp": "AR+AF 二層コーティング", "kana": "", "zh": "AR+AF 双层膜", "en": "AR+AF coating", "category": "显示面板与光学触控", "note": ""}, {"jp": "", "kana": "", "zh": "防眩光", "en": "Anti-Glare/AG", "category": "显示面板与光学触控", "note": ""}, {"jp": "相関色温度", "kana": "そうかんしょくおんど", "zh": "色温", "en": "Correlated Color Temperature（CCT）", "category": "显示面板与光学触控", "note": ""}, {"jp": "色ずれ、カラーシフト", "kana": "", "zh": "色偏（通用）", "en": "Color shift", "category": "显示面板与光学触控", "note": ""}, {"jp": "黄変", "kana": "おうへん", "zh": "底色偏黄 / 黄变", "en": "Yellow tint", "category": "显示面板与光学触控", "note": ""}, {"jp": "TCP", "kana": "テープキャリアパッケージ", "zh": "TCP（载带封装，驱动 IC 柔性载带）", "en": "TCP（Tape Carrier Package）", "category": "显示面板与光学触控", "note": ""}, {"jp": "TN：ツイステッドネマチック", "kana": "", "zh": "扭曲向列型液晶", "en": "TN：Twisted Nematic", "category": "显示面板与光学触控", "note": "基础液晶材质，成本低、响应快，但可视角度差，早年电脑显示器、低端屏常用。"}, {"jp": "STN：スーパーツイステッドネマチック", "kana": "", "zh": "超扭曲向列型液晶", "en": "STN：Super Twisted Nematic", "category": "显示面板与光学触控", "note": "扭曲角度更大，对比度优于 TN，多用于老式电子表、工控单色小屏。"}, {"jp": "ヨウ素", "kana": "", "zh": "碘", "en": "iodine", "category": "显示面板与光学触控", "note": ""}, {"jp": "TAC フィルム", "kana": "", "zh": "TAC 膜", "en": "Triacetate Cellulose Film", "category": "显示面板与光学触控", "note": "三醋酸纤维素薄膜，LCD 偏光片核心基材，表面可做各类功能涂层"}, {"jp": "AG（防眩）", "kana": "", "zh": "AG 防眩膜", "en": "Anti-Glare", "category": "显示面板与光学触控", "note": "表面微粒子凹凸结构，散射外界强光，消除屏幕反光刺眼问题"}, {"jp": "LR 低反射", "kana": "", "zh": "LR 低反射", "en": "Low Reflection", "category": "显示面板与光学触控", "note": "降低界面反射率，减少环境倒影，提升户外可视性"}, {"jp": "CHC ハードコート", "kana": "", "zh": "CHC 透明硬化", "en": "Clear Hard Coating", "category": "显示面板与光学触控", "note": "高透明硬质涂层，提升膜层耐刮擦、耐磨性能，保护面板"}, {"jp": "AR 反射防止膜", "kana": "", "zh": "AR 防反射膜", "en": "Anti-Reflection", "category": "显示面板与光学触控", "note": "多层光学干涉涂层，大幅降低屏幕反射，对比度更高"}, {"jp": "AG+LR 複合フィルム", "kana": "", "zh": "AG+LR 复合膜", "en": "Anti-Glare + Low Reflection", "category": "显示面板与光学触控", "note": "同时具备防眩光、低反射双重效果，多用于电视大屏"}, {"jp": "CHC+LR 複合フィルム", "kana": "", "zh": "CHC+LR 复合膜", "en": "Clear Hard Coating + Low Reflection", "category": "显示面板与光学触控", "note": "兼顾耐磨抗刮与低反射，适配手机、平板小型终端"}, {"jp": "TN モード", "kana": "ツイステッドネマチック", "zh": "扭曲向列相模式（普通显示模式）", "en": "Twisted Nematic，TN", "category": "显示面板与光学触控", "note": "成本低、响应速度快；缺点是可视角度极小，侧看会偏色发白，多用于老式显示器、低端工控屏"}, {"jp": "IPS モード", "kana": "", "zh": "共面开关模式（广角显示）", "en": "In-Plane Switching，IPS", "category": "显示面板与光学触控", "note": "色彩均匀、左右上下视角均衡，色彩还原优秀；广泛用于电脑显示器、笔记本、监控屏"}, {"jp": "FFS モード", "kana": "", "zh": "场边缘开关模式", "en": "Fringe-Field Switching，FFS", "category": "显示面板与光学触控", "note": "IPS 衍生改良型，透光率更高、功耗更低，是手机 LCD 屏幕主流技术"}, {"jp": "VA モード", "kana": "", "zh": "垂直取向模式", "en": "Vertical Alignment，VA", "category": "显示面板与光学触控", "note": "原生对比度极高、黑色纯净度好；多用于液晶电视、高端曲面显示器，垂直视角略弱于 IPS"}, {"jp": "双棱镜片贴合", "kana": "", "zh": "POP", "en": "Prism on Prism", "category": "显示面板与光学触控", "note": "两层棱镜片背靠背贴合，三角棱纹相对"}, {"jp": "棱镜片贴扩散片", "kana": "", "zh": "POD", "en": "Prism on Diffuser", "category": "显示面板与光学触控", "note": "棱镜片微结构朝上，下方复合扩散片基底"}, {"jp": "扩散片贴棱镜片", "kana": "", "zh": "DOP", "en": "Diffuser on Prism", "category": "显示面板与光学触控", "note": "扩散粒子层朝上，底层复合棱镜片"}, {"jp": "波打ち（なみうち）、ウェーブ", "kana": "", "zh": "波浪纹、水波纹", "en": "waving", "category": "显示面板与光学触控", "note": "光学膜 / 导光板 / 偏光片出现连续波浪状起伏外观不良，大面积周期性凹凸纹路"}, {"jp": "シワ、皺", "kana": "しわ", "zh": "褶皱、起皱", "en": "wrinkle", "category": "显示面板与光学触控", "note": "光学膜 / 偏光片 / 导光板外观不良，膜材表面出现波浪状凹凸纹路"}, {"jp": "ワーク", "kana": "", "zh": "工件 / 待贴合基板", "en": "Work / Workpiece", "category": "显示面板与光学触控", "note": ""}, {"jp": "ステージ", "kana": "", "zh": "载台、工装平台", "en": "Stage", "category": "显示面板与光学触控", "note": ""}, {"jp": "ギャップ", "kana": "", "zh": "间隙", "en": "GAP", "category": "显示面板与光学触控", "note": ""}, {"jp": "OCA 光学粘着フィルム", "kana": "", "zh": "固态光学胶", "en": "OCA (Optical Clear Adhesive)", "category": "显示面板与光学触控", "note": ""}, {"jp": "OCR 光学透明樹脂", "kana": "", "zh": "液态光学胶", "en": "OCR (Optical Clear Resin)", "category": "显示面板与光学触控", "note": ""}, {"jp": "パーティクル、異物", "kana": "", "zh": "微粒、异物、尘点", "en": "particle", "category": "显示面板与光学触控", "note": ""}, {"jp": "チャンバー", "kana": "", "zh": "腔体、真空腔", "en": "chamber", "category": "显示面板与光学触控", "note": "设备密闭真空工作腔，贴合、脱泡、镀膜、液晶灌注设备核心密闭空间"}, {"jp": "BM ブラックマトリックス", "kana": "", "zh": "BM 黑矩阵", "en": "BM（Black Matrix）", "category": "显示面板与光学触控", "note": "面板边缘黑色遮光油墨，印刷在彩膜基板四周，遮挡像素漏光、分隔 RGB 子像素，印刷后会形成台阶段差；\\n黑色遮光网格层，隔绝相邻像素漏光，避免像素混色、画面发雾，同时遮挡边缘走线，防止透光干扰显示效果。"}, {"jp": "ベゼル、額縁", "kana": "", "zh": "边框 / 遮蔽围边", "en": "Bezel", "category": "显示面板与光学触控", "note": "盖板、触控屏边缘油墨围边，或屏幕金属窄边框；印刷层存在厚度，在贴合面形成凹凸段差"}, {"jp": "ムラ", "kana": "", "zh": "色斑、亮度不均、云斑", "en": "Mura", "category": "显示面板与光学触控", "note": "屏幕点亮后出现明暗不均、色块、雾状色差，是 LCD/OLED 最典型光学不良统称"}, {"jp": "VSP", "kana": "", "zh": "触控正信号", "en": "VSP", "category": "显示面板与光学触控", "note": "Touch Sensor Positive，触控差分正信号；\\n触控 IC 通过 VSP、VSN 差分信号扫描 ITO 感应线路，识别触摸点位。"}, {"jp": "VSN", "kana": "", "zh": "触控负信号", "en": "VSN", "category": "显示面板与光学触控", "note": "Touch Sensor Negative，触控差分负信号"}, {"jp": "VDD", "kana": "", "zh": "供电电源正极", "en": "VDD", "category": "显示面板与光学触控", "note": "芯片、触控线路工作供电电压；给触控 IC、Sensor 回路提供工作电压。"}, {"jp": "TVS", "kana": "", "zh": "瞬态抑制二极管", "en": "TVS", "category": "显示面板与光学触控", "note": "防静电 ESD 保护元器件"}, {"jp": "GND", "kana": "", "zh": "接地、地电位", "en": "GND", "category": "显示面板与光学触控", "note": "地、电源负极参考电位；对地阻抗 = 线路与 GND 之间的电阻值；\\n电路零电位基准点，所有电压的参考零点；屏蔽膜、铁框、IC、FPC 走线均需连接 GND，用于泄放静电、EMI 噪声，稳定触控 TX/RX 与 VCOM 电位，避免跳点、闪屏。"}, {"jp": "DSTB", "kana": "", "zh": "深度触控检测缓冲信号", "en": "DSTB", "category": "显示面板与光学触控", "note": "搭配压力触控方案的检测缓冲信号线"}, {"jp": "レポートレート", "kana": "レポートレート", "zh": "报点率", "en": "Report Rate", "category": "显示面板与光学触控", "note": "触控芯片每秒向主控端上报触控坐标点位的次数，单位 Hz，数值越高触控跟手性越好，游戏场景对该指标要求极高"}, {"jp": "治具（ジグ）、固定冶具", "kana": "", "zh": "治具、工装夹具", "en": "Jig / Fixture", "category": "显示面板与光学触控", "note": "生产、测试设备中用于固定、定位工件的专用工装，保障对位精度与操作稳定性"}, {"jp": "送信電極", "kana": "そうしんでんきょく", "zh": "发射电极（TX）", "en": "Transmit (TX) Electrode", "category": "显示面板与光学触控", "note": "触控 IC 向外输出交变驱动信号的电极，是电容信号的发射端，与 RX 电极垂直交叉构成触控感应矩阵"}, {"jp": "受信電極", "kana": "じゅしんでんきょく", "zh": "接收电极（RX）", "en": "Receive (RX) Electrode", "category": "显示面板与光学触控", "note": "捕捉 TX 发射电场产生的电容变化信号的电极，将感应数据回传至触控 IC，完成触控坐标计算"}, {"jp": "シール剤（ざい） / 枠膠（わくごう）", "kana": "", "zh": "封框胶", "en": "Sealant / Frame Glue", "category": "显示面板与光学触控", "note": "边框密封胶，用于粘接上下两块玻璃基板，密封液晶腔体，锁住内部液晶，隔绝外界水汽、灰尘进入盒内"}]'
+SEED_WORDS_JSON = '[{"jp": "パラメータ", "kana": "", "zh": "参数", "en": "parameter", "category": "测试与硬件通用", "note": "（日常语境的引申义），表示对事物的限制条件"}, {"jp": "同等", "kana": "どうとう", "zh": "同等", "en": "equal / equivalent", "category": "测试与硬件通用", "note": ""}, {"jp": "バイアス", "kana": "", "zh": "偏差/偏置/偏见", "en": "bias", "category": "测试与硬件通用", "note": "统计学、机器学习中常译「偏差」，AI大模型语境常译「偏置」，社会语境中一般译为「偏见」。"}, {"jp": "縮小", "kana": "しゅくしょう", "zh": "缩小；缩小规模", "en": "reduce / shrink / scale down", "category": "测试与硬件通用", "note": ""}, {"jp": "グラファイト/黒鉛（こくえん）", "kana": "", "zh": "石墨", "en": "graphite", "category": "测试与硬件通用", "note": ""}, {"jp": "変化（へんか）/バリエーション", "kana": "", "zh": "变化；变动；", "en": "variation", "category": "测试与硬件通用", "note": ""}, {"jp": "ミリワット", "kana": "", "zh": "毫瓦 (mW)", "en": "milliwatt (mW)", "category": "测试与硬件通用", "note": ""}, {"jp": "", "kana": "", "zh": "显示驱动芯片", "en": "DDIC = Display Driver IC", "category": "测试与硬件通用", "note": "屏幕核心驱动 IC，含源极 / 栅极驱动、TDDI 触控显示一体芯片"}, {"jp": "", "kana": "", "zh": "动态工作功耗 / 有源功耗", "en": "Active Power", "category": "测试与硬件通用", "note": "DDIC active power：显示驱动芯片正常点亮画面、刷新像素时的动态运行功耗，单位 mW（毫瓦）"}, {"jp": "消費電力", "kana": "しょうひでんりょく", "zh": "功耗", "en": "power consumption", "category": "测试与硬件通用", "note": "Active power consumption\\n动态工作功耗 = DDIC active power\\n屏幕亮屏刷新、正常显示画面时驱动芯片产生的功耗"}, {"jp": "解像度", "kana": "", "zh": "分辨率/清晰率", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ディスプレー", "kana": "", "zh": "显示器", "en": "display", "category": "测试与硬件通用", "note": ""}, {"jp": "組電池/電池パック", "kana": "", "zh": "组电池", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "単電池", "kana": "", "zh": "单电池", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "過充電試験", "kana": "", "zh": "过充试验", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "フェイル", "kana": "", "zh": "故障", "en": "fail", "category": "测试与硬件通用", "note": ""}, {"jp": "シャットダウン", "kana": "", "zh": "关机", "en": "shutdown", "category": "测试与硬件通用", "note": ""}, {"jp": "パラメーター", "kana": "", "zh": "参数/变量", "en": "parameter", "category": "测试与硬件通用", "note": ""}, {"jp": "インターフェース", "kana": "", "zh": "接口", "en": "interface", "category": "测试与硬件通用", "note": ""}, {"jp": "検証", "kana": "けんしょう", "zh": "验证", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "単体", "kana": "たんたい〇", "zh": "单体", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "デフォルト値", "kana": "", "zh": "默认值", "en": "default", "category": "测试与硬件通用", "note": ""}, {"jp": "", "kana": "", "zh": "延迟", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "リアルタイム性", "kana": "", "zh": "实时性", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ドッキング", "kana": "", "zh": "对接", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "タイピング", "kana": "", "zh": "输入", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "プロセッサ/CPU", "kana": "", "zh": "处理器", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ストレージ", "kana": "", "zh": "储存", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ベンダ", "kana": "", "zh": "供应商", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "スナップ", "kana": "", "zh": "卡扣/按扣", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "縦線/横線", "kana": "", "zh": "竖线/横线", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "スペック", "kana": "", "zh": "规格、参数", "en": "spec", "category": "测试与硬件通用", "note": ""}, {"jp": "アイコン", "kana": "", "zh": "图标", "en": "icon", "category": "测试与硬件通用", "note": ""}, {"jp": "ドロップテスト/落下試験", "kana": "", "zh": "跌落测试", "en": "drop", "category": "测试与硬件通用", "note": ""}, {"jp": "微落下試験", "kana": "", "zh": "微跌测试", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "気密性", "kana": "", "zh": "气密", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "図面", "kana": "", "zh": "图纸", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "シールド", "kana": "", "zh": "屏蔽罩/保护罩", "en": "EMI～", "category": "测试与硬件通用", "note": ""}, {"jp": "ファブリック・導電布", "kana": "ファブリック・どうでんふ", "zh": "导电布", "en": "conductive fabric", "category": "测试与硬件通用", "note": ""}, {"jp": "グラファイトシート", "kana": "", "zh": "石墨片", "en": "graphite", "category": "测试与硬件通用", "note": ""}, {"jp": "敷き詰める", "kana": "", "zh": "铺满; 布满; 铺满整个表面", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "記載⓪", "kana": "", "zh": "写上", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "仕様", "kana": "しよう", "zh": "规格；方式；方法", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "引き延ばす効果", "kana": "", "zh": "延伸效果（叠层侧视图用）", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "フレキシブルプリント配線板", "kana": "", "zh": "柔性线路板", "en": "Flexible Printed Circuits", "category": "测试与硬件通用", "note": ""}, {"jp": "端", "kana": "はし⓪", "zh": "边缘；末端；起点；", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "全張り", "kana": "ぜんばっり", "zh": "全贴合", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "空気抜け", "kana": "", "zh": "排气；抽气；放气", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "追記", "kana": "ついき⓪", "zh": "追加记录；补充说明", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "コーティング", "kana": "", "zh": "涂层；镀膜；覆膜", "en": "coating", "category": "测试与硬件通用", "note": ""}, {"jp": "クラック", "kana": "", "zh": "裂缝", "en": "crack", "category": "测试与硬件通用", "note": ""}, {"jp": "スジ", "kana": "", "zh": "条纹", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "勝手に再起動かかる", "kana": "", "zh": "自动重启", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "電源が付かなくなった", "kana": "", "zh": "无法开机", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "フリーズする", "kana": "", "zh": "卡死/卡住", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "傷", "kana": "", "zh": "划痕", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "初期化", "kana": "", "zh": "恢复出厂设置", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "クロス検証", "kana": "", "zh": "交叉验证", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "BTBインターフェース", "kana": "", "zh": "BTB接口", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "コンポーネント", "kana": "", "zh": "组件", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "バックライトは点灯する", "kana": "", "zh": "背光点亮", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ビルド番号", "kana": "", "zh": "版本号", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "通常の端末", "kana": "", "zh": "正常设备/机器", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "電源投入不可", "kana": "", "zh": "无法上电", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "電源落ちる / 電源が切れる", "kana": "", "zh": "断电", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "筐体⓪", "kana": "きょうたい", "zh": "外壳/壳体", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "水没検知シール / すいぼつ / 浸水ラベル / しんすい⓪", "kana": "", "zh": "进水/防水标签", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "~にじみ無し", "kana": "", "zh": "无渗色", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "勘合⓪", "kana": "かんごう", "zh": "对照/核对/验证", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "端子①", "kana": "たんし", "zh": "接头；接线端；端子", "en": "", "category": "测试与硬件通用", "note": "CN=pin脚"}, {"jp": "焼き付き", "kana": "", "zh": "烧屏", "en": "Screen Burn-in", "category": "测试与硬件通用", "note": ""}, {"jp": "デモ画面", "kana": "", "zh": "演示画面", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "黄色まだら / 黄色かかった", "kana": "", "zh": "黄斑 / 泛黄", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "お客様の了承", "kana": "", "zh": "顾客/客户同意", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "色味③", "kana": "いろみ", "zh": "色深/色彩", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "追加解析に回す", "kana": "", "zh": "进一步分析", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "症状はDisplayについて回る", "kana": "", "zh": "现象随屏走", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "インフォ", "kana": "", "zh": "咨询窗口", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "たらいまわしにされた", "kana": "", "zh": "遭到推诿", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "預かり修理に納得されない", "kana": "", "zh": "（客户）不接受寄存维修", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "テクニカルアドバイザー", "kana": "", "zh": "技术顾问", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "バイブ", "kana": "", "zh": "震动", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "まえだおし⓪  前倒しする・前倒しになる / 繰り上げる・早める", "kana": "", "zh": "提前", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "オープン", "kana": "", "zh": "开路（膜缺失 / 刻穿 / 过孔处断裂）", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "仕組み", "kana": "しくみ⓪", "zh": "计划，安排", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ファーム・ / ファームウエア", "kana": "", "zh": "固件", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "調整がしょうじたときに", "kana": "", "zh": "", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "セット側", "kana": "", "zh": "整机", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "銅シート・銅のパーツ（零件；部件；配件）", "kana": "", "zh": "铜片", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "けいじょう⓪", "kana": "", "zh": "形状", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ワースト条件", "kana": "", "zh": "最坏情况/最差条件", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "性能比較", "kana": "", "zh": "", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "機種①②", "kana": "きしゅ", "zh": "机型", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "あくまでも", "kana": "", "zh": "终究", "en": "", "category": "测试与硬件通用", "note": "これはあくまでもネット上で収集した情報です。"}, {"jp": "ミドルフレーム", "kana": "", "zh": "中框", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "ソリューション", "kana": "", "zh": "解决方案", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "逆算", "kana": "ぎゃくさん⓪", "zh": "倒算；倒推", "en": "", "category": "测试与硬件通用", "note": ""}, {"jp": "バックプレート", "kana": "", "zh": "背板", "en": "backing plate", "category": "测试与硬件通用", "note": ""}, {"jp": "視野角", "kana": "しやかく", "zh": "视角", "en": "View Angles", "category": "显示面板与光学触控", "note": ""}, {"jp": "コントラスト比", "kana": "コントラストひ", "zh": "对比度", "en": "Contrast Ratio", "category": "显示面板与光学触控", "note": ""}, {"jp": "応答時間", "kana": "おうとうじかん", "zh": "响应时间", "en": "Response Time", "category": "显示面板与光学触控", "note": ""}, {"jp": "斜め色シフト", "kana": "ななめいろシフト", "zh": "偏角色移/侧视色偏", "en": "Off-angle color shift", "category": "显示面板与光学触控", "note": ""}, {"jp": "色再現範囲（いろさいげんはんい） / カラーガマット", "kana": "", "zh": "色域", "en": "Color Gamut", "category": "显示面板与光学触控", "note": ""}, {"jp": "黒レベル", "kana": "くろレベル", "zh": "黑色亮度/黑位", "en": "Black", "category": "显示面板与光学触控", "note": ""}, {"jp": "輝度減衰", "kana": "きどげんすい", "zh": "亮度衰减", "en": "Luminance Decay", "category": "显示面板与光学触控", "note": ""}, {"jp": "色均一性", "kana": "いろきんいつせい", "zh": "色彩均匀度", "en": "Color uniformity", "category": "显示面板与光学触控", "note": ""}, {"jp": "寿命", "kana": "じゅみょう", "zh": "使用寿命", "en": "Life Time", "category": "显示面板与光学触控", "note": ""}, {"jp": "焼き付き", "kana": "やきつき", "zh": "图像残留/烧屏", "en": "Image Sticking", "category": "显示面板与光学触控", "note": ""}, {"jp": "クロストーク", "kana": "", "zh": "串扰", "en": "Crosstalk", "category": "显示面板与光学触控", "note": ""}, {"jp": "常時表示（じょうじひょうじ） / AOD", "kana": "", "zh": "息屏显示", "en": "AOD（Always On Display）", "category": "显示面板与光学触控", "note": ""}, {"jp": "OLEDアレイ", "kana": "", "zh": "有机发光二极管阵列", "en": "OLED Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "パッシブマトリクスOLED", "kana": "", "zh": "被动矩阵有机发光二极管", "en": "Passive Matrix OLED (PMOLED)", "category": "显示面板与光学触控", "note": ""}, {"jp": "アクティブマトリクスOLED", "kana": "", "zh": "主动矩阵有机发光二极管", "en": "Active Matrix OLED (AMOLED)", "category": "显示面板与光学触控", "note": ""}, {"jp": "薄膜トランジスタ", "kana": "", "zh": "薄膜晶体管", "en": "Thin Film Transistor (TFT)", "category": "显示面板与光学触控", "note": ""}, {"jp": "ピクセルアレイ", "kana": "", "zh": "像素阵列", "en": "Pixel Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "サブピクセル", "kana": "", "zh": "子像素", "en": "Sub-pixel", "category": "显示面板与光学触控", "note": ""}, {"jp": "ペンタイル配列", "kana": "", "zh": "Pentile排列", "en": "Pentile Matrix", "category": "显示面板与光学触控", "note": ""}, {"jp": "ストライプ配列", "kana": "", "zh": "条纹排列", "en": "Stripe Arrangement", "category": "显示面板与光学触控", "note": ""}, {"jp": "デルタ配列", "kana": "", "zh": "Delta排列", "en": "Delta Arrangement", "category": "显示面板与光学触控", "note": ""}, {"jp": "有機発光層", "kana": "", "zh": "有机发光层", "en": "Organic Emitting Layer", "category": "显示面板与光学触控", "note": ""}, {"jp": "正孔輸送層", "kana": "", "zh": "空穴传输层", "en": "Hole Transport Layer (HTL)", "category": "显示面板与光学触控", "note": ""}, {"jp": "電子輸送層", "kana": "", "zh": "电子传输层", "en": "Electron Transport Layer (ETL)", "category": "显示面板与光学触控", "note": ""}, {"jp": "アノード", "kana": "", "zh": "阳极", "en": "Anode", "category": "显示面板与光学触控", "note": ""}, {"jp": "カソード", "kana": "", "zh": "阴极", "en": "Cathode", "category": "显示面板与光学触控", "note": ""}, {"jp": "基板", "kana": "", "zh": "衬底", "en": "Substrate", "category": "显示面板与光学触控", "note": ""}, {"jp": "蒸着", "kana": "", "zh": "蒸镀", "en": "Vacuum Thermal Evaporation", "category": "显示面板与光学触控", "note": ""}, {"jp": "インクジェット印刷", "kana": "", "zh": "喷墨打印", "en": "Inkjet Printing", "category": "显示面板与光学触控", "note": ""}, {"jp": "フレキシブルOLEDアレイ", "kana": "", "zh": "柔性OLED阵列", "en": "Flexible OLED Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "折りたたみ式OLEDアレイ", "kana": "", "zh": "折叠OLED阵列", "en": "Foldable OLED Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "ウェアラブルOLEDアレイ", "kana": "", "zh": "可穿戴OLED阵列", "en": "Wearable OLED Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "OLEDセンシングアレイ", "kana": "", "zh": "OLED传感阵列", "en": "OLED Sensing Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "光遺伝学刺激アレイ", "kana": "", "zh": "光遗传刺激阵列", "en": "Optogenetic Stimulation Array", "category": "显示面板与光学触控", "note": ""}, {"jp": "歩留まり", "kana": "", "zh": "良率", "en": "Yield", "category": "显示面板与光学触控", "note": ""}, {"jp": "開口率", "kana": "", "zh": "开口率", "en": "Aperture Ratio", "category": "显示面板与光学触控", "note": ""}, {"jp": "近眼表示", "kana": "", "zh": "近眼显示", "en": "Near-eye Display", "category": "显示面板与光学触控", "note": ""}, {"jp": "CNCカッティング", "kana": "", "zh": "CNC切割", "en": "CNC Cutting (Computer Numerical Control Cutting)", "category": "显示面板与光学触控", "note": "CNC切割通过预编程的加工代码，用自动化设备，控制切割刀具/高能束（激光、等离子等）按照设定路径自动切割金属、塑料、木材、玻璃、复合材料等各类材料"}, {"jp": "防指紋コーティング", "kana": "ぼうしもんコーティング", "zh": "抗指纹涂层 / AF 镀膜", "en": "anti-fingerprint coating / AF coating", "category": "显示面板与光学触控", "note": "日语显示 / 电子行业中，「指紋防止」是最常用的标准译法；\\n「アンチフィンガープリント」为片假名音译，多用于技术资料和产品规格书；\\n「防指紋」（ぼうしもん）也是常见写法，多用于镀膜、涂层相关语境"}, {"jp": "汚れ防止コート / アンチスマッジ", "kana": "", "zh": "防污膜/玻璃（疏水防尘）", "en": "Anti-Smudge/AS", "category": "显示面板与光学触控", "note": ""}, {"jp": "アンチリフレクション / 反射防止コーティング", "kana": "", "zh": "减反射膜 / AR 膜/抗反增透膜", "en": "Anti-Reflection coating (AR)", "category": "显示面板与光学触控", "note": ""}, {"jp": "反射防止複合コート", "kana": "", "zh": "AR 复合镀膜", "en": "AR composite coating", "category": "显示面板与光学触控", "note": ""}, {"jp": "反射防止処理", "kana": "", "zh": "减反射处理", "en": "Anti-reflection treatment", "category": "显示面板与光学触控", "note": ""}, {"jp": "AR+AF 二層コーティング", "kana": "", "zh": "AR+AF 双层膜", "en": "AR+AF coating", "category": "显示面板与光学触控", "note": ""}, {"jp": "", "kana": "", "zh": "防眩光", "en": "Anti-Glare/AG", "category": "显示面板与光学触控", "note": ""}, {"jp": "相関色温度", "kana": "そうかんしょくおんど", "zh": "色温", "en": "Correlated Color Temperature（CCT）", "category": "显示面板与光学触控", "note": ""}, {"jp": "色ずれ、カラーシフト", "kana": "", "zh": "色偏（通用）", "en": "Color shift", "category": "显示面板与光学触控", "note": ""}, {"jp": "黄変", "kana": "おうへん", "zh": "底色偏黄 / 黄变", "en": "Yellow tint", "category": "显示面板与光学触控", "note": ""}, {"jp": "TCP", "kana": "テープキャリアパッケージ", "zh": "TCP（载带封装，驱动 IC 柔性载带）", "en": "TCP（Tape Carrier Package）", "category": "显示面板与光学触控", "note": ""}, {"jp": "TN：ツイステッドネマチック", "kana": "", "zh": "扭曲向列型液晶", "en": "TN：Twisted Nematic", "category": "显示面板与光学触控", "note": "基础液晶材质，成本低、响应快，但可视角度差，早年电脑显示器、低端屏常用。"}, {"jp": "STN：スーパーツイステッドネマチック", "kana": "", "zh": "超扭曲向列型液晶", "en": "STN：Super Twisted Nematic", "category": "显示面板与光学触控", "note": "扭曲角度更大，对比度优于 TN，多用于老式电子表、工控单色小屏。"}, {"jp": "ヨウ素", "kana": "", "zh": "碘", "en": "iodine", "category": "显示面板与光学触控", "note": ""}, {"jp": "TAC フィルム", "kana": "", "zh": "TAC 膜", "en": "Triacetate Cellulose Film", "category": "显示面板与光学触控", "note": "三醋酸纤维素薄膜，LCD 偏光片核心基材，表面可做各类功能涂层"}, {"jp": "AG（防眩）", "kana": "", "zh": "AG 防眩膜", "en": "Anti-Glare", "category": "显示面板与光学触控", "note": "表面微粒子凹凸结构，散射外界强光，消除屏幕反光刺眼问题"}, {"jp": "LR 低反射", "kana": "", "zh": "LR 低反射", "en": "Low Reflection", "category": "显示面板与光学触控", "note": "降低界面反射率，减少环境倒影，提升户外可视性"}, {"jp": "CHC ハードコート", "kana": "", "zh": "CHC 透明硬化", "en": "Clear Hard Coating", "category": "显示面板与光学触控", "note": "高透明硬质涂层，提升膜层耐刮擦、耐磨性能，保护面板"}, {"jp": "AR 反射防止膜", "kana": "", "zh": "AR 防反射膜", "en": "Anti-Reflection", "category": "显示面板与光学触控", "note": "多层光学干涉涂层，大幅降低屏幕反射，对比度更高"}, {"jp": "AG+LR 複合フィルム", "kana": "", "zh": "AG+LR 复合膜", "en": "Anti-Glare + Low Reflection", "category": "显示面板与光学触控", "note": "同时具备防眩光、低反射双重效果，多用于电视大屏"}, {"jp": "CHC+LR 複合フィルム", "kana": "", "zh": "CHC+LR 复合膜", "en": "Clear Hard Coating + Low Reflection", "category": "显示面板与光学触控", "note": "兼顾耐磨抗刮与低反射，适配手机、平板小型终端"}, {"jp": "TN モード", "kana": "ツイステッドネマチック", "zh": "扭曲向列相模式（普通显示模式）", "en": "Twisted Nematic，TN", "category": "显示面板与光学触控", "note": "成本低、响应速度快；缺点是可视角度极小，侧看会偏色发白，多用于老式显示器、低端工控屏"}, {"jp": "IPS モード", "kana": "", "zh": "共面开关模式（广角显示）", "en": "In-Plane Switching，IPS", "category": "显示面板与光学触控", "note": "色彩均匀、左右上下视角均衡，色彩还原优秀；广泛用于电脑显示器、笔记本、监控屏"}, {"jp": "FFS モード", "kana": "", "zh": "场边缘开关模式", "en": "Fringe-Field Switching，FFS", "category": "显示面板与光学触控", "note": "IPS 衍生改良型，透光率更高、功耗更低，是手机 LCD 屏幕主流技术"}, {"jp": "VA モード", "kana": "", "zh": "垂直取向模式", "en": "Vertical Alignment，VA", "category": "显示面板与光学触控", "note": "原生对比度极高、黑色纯净度好；多用于液晶电视、高端曲面显示器，垂直视角略弱于 IPS"}, {"jp": "双棱镜片贴合", "kana": "", "zh": "POP", "en": "Prism on Prism", "category": "显示面板与光学触控", "note": "两层棱镜片背靠背贴合，三角棱纹相对"}, {"jp": "棱镜片贴扩散片", "kana": "", "zh": "POD", "en": "Prism on Diffuser", "category": "显示面板与光学触控", "note": "棱镜片微结构朝上，下方复合扩散片基底"}, {"jp": "扩散片贴棱镜片", "kana": "", "zh": "DOP", "en": "Diffuser on Prism", "category": "显示面板与光学触控", "note": "扩散粒子层朝上，底层复合棱镜片"}, {"jp": "波打ち（なみうち）、ウェーブ", "kana": "", "zh": "波浪纹、水波纹", "en": "waving", "category": "显示面板与光学触控", "note": "光学膜 / 导光板 / 偏光片出现连续波浪状起伏外观不良，大面积周期性凹凸纹路"}, {"jp": "シワ、皺", "kana": "しわ", "zh": "褶皱、起皱", "en": "wrinkle", "category": "显示面板与光学触控", "note": "光学膜 / 偏光片 / 导光板外观不良，膜材表面出现波浪状凹凸纹路"}, {"jp": "ワーク", "kana": "", "zh": "工件 / 待贴合基板", "en": "Work / Workpiece", "category": "显示面板与光学触控", "note": ""}, {"jp": "ステージ", "kana": "", "zh": "载台、工装平台", "en": "Stage", "category": "显示面板与光学触控", "note": ""}, {"jp": "ギャップ", "kana": "", "zh": "间隙", "en": "GAP", "category": "显示面板与光学触控", "note": ""}, {"jp": "OCA 光学粘着フィルム", "kana": "", "zh": "固态光学胶", "en": "OCA (Optical Clear Adhesive)", "category": "显示面板与光学触控", "note": ""}, {"jp": "OCR 光学透明樹脂", "kana": "", "zh": "液态光学胶", "en": "OCR (Optical Clear Resin)", "category": "显示面板与光学触控", "note": ""}, {"jp": "パーティクル、異物", "kana": "", "zh": "微粒、异物、尘点", "en": "particle", "category": "显示面板与光学触控", "note": ""}, {"jp": "チャンバー", "kana": "", "zh": "腔体、真空腔", "en": "chamber", "category": "显示面板与光学触控", "note": "设备密闭真空工作腔，贴合、脱泡、镀膜、液晶灌注设备核心密闭空间"}, {"jp": "BM ブラックマトリックス", "kana": "", "zh": "BM 黑矩阵", "en": "BM（Black Matrix）", "category": "显示面板与光学触控", "note": "面板边缘黑色遮光油墨，印刷在彩膜基板四周，遮挡像素漏光、分隔 RGB 子像素，印刷后会形成台阶段差；\\n黑色遮光网格层，隔绝相邻像素漏光，避免像素混色、画面发雾，同时遮挡边缘走线，防止透光干扰显示效果。"}, {"jp": "ベゼル、額縁", "kana": "", "zh": "边框 / 遮蔽围边", "en": "Bezel", "category": "显示面板与光学触控", "note": "盖板、触控屏边缘油墨围边，或屏幕金属窄边框；印刷层存在厚度，在贴合面形成凹凸段差"}, {"jp": "ムラ", "kana": "", "zh": "色斑、亮度不均、云斑", "en": "Mura", "category": "显示面板与光学触控", "note": "屏幕点亮后出现明暗不均、色块、雾状色差，是 LCD/OLED 最典型光学不良统称"}, {"jp": "VSP", "kana": "", "zh": "触控正信号", "en": "VSP", "category": "显示面板与光学触控", "note": "Touch Sensor Positive，触控差分正信号；\\n触控 IC 通过 VSP、VSN 差分信号扫描 ITO 感应线路，识别触摸点位。"}, {"jp": "VSN", "kana": "", "zh": "触控负信号", "en": "VSN", "category": "显示面板与光学触控", "note": "Touch Sensor Negative，触控差分负信号"}, {"jp": "VDD", "kana": "", "zh": "供电电源正极", "en": "VDD", "category": "显示面板与光学触控", "note": "芯片、触控线路工作供电电压；给触控 IC、Sensor 回路提供工作电压。"}, {"jp": "TVS", "kana": "", "zh": "瞬态抑制二极管", "en": "TVS", "category": "显示面板与光学触控", "note": "防静电 ESD 保护元器件"}, {"jp": "GND", "kana": "", "zh": "接地、地电位", "en": "GND", "category": "显示面板与光学触控", "note": "地、电源负极参考电位；对地阻抗 = 线路与 GND 之间的电阻值；\\n电路零电位基准点，所有电压的参考零点；屏蔽膜、铁框、IC、FPC 走线均需连接 GND，用于泄放静电、EMI 噪声，稳定触控 TX/RX 与 VCOM 电位，避免跳点、闪屏。"}, {"jp": "DSTB", "kana": "", "zh": "深度触控检测缓冲信号", "en": "DSTB", "category": "显示面板与光学触控", "note": "搭配压力触控方案的检测缓冲信号线"}, {"jp": "レポートレート", "kana": "レポートレート", "zh": "报点率", "en": "Report Rate", "category": "显示面板与光学触控", "note": "触控芯片每秒向主控端上报触控坐标点位的次数，单位 Hz，数值越高触控跟手性越好，游戏场景对该指标要求极高"}, {"jp": "治具（ジグ）、固定冶具", "kana": "", "zh": "治具、工装夹具", "en": "Jig / Fixture", "category": "显示面板与光学触控", "note": "生产、测试设备中用于固定、定位工件的专用工装，保障对位精度与操作稳定性"}, {"jp": "送信電極", "kana": "そうしんでんきょく", "zh": "发射电极（TX）", "en": "Transmit (TX) Electrode", "category": "显示面板与光学触控", "note": "触控 IC 向外输出交变驱动信号的电极，是电容信号的发射端，与 RX 电极垂直交叉构成触控感应矩阵"}, {"jp": "受信電極", "kana": "じゅしんでんきょく", "zh": "接收电极（RX）", "en": "Receive (RX) Electrode", "category": "显示面板与光学触控", "note": "捕捉 TX 发射电场产生的电容变化信号的电极，将感应数据回传至触控 IC，完成触控坐标计算"}, {"jp": "シール剤（ざい） / 枠膠（わくごう）", "kana": "", "zh": "封框胶", "en": "Sealant / Frame Glue", "category": "显示面板与光学触控", "note": "边框密封胶，用于粘接上下两块玻璃基板，密封液晶腔体，锁住内部液晶，隔绝外界水汽、灰尘进入盒内"}]'
 
 _ACCENT_CHARS = set("⓪①②③④⑤⑥⑦⑧⑨〇")
+_B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+
+def b64_encode(data):
+    """Pure-Python Base64 encoder (avoids sandbox-blocked base64 module)."""
+    if not data:
+        return ""
+    if isinstance(data, str):
+        data = data.encode("utf-8")
+    out = []
+    n = len(data)
+    i = 0
+    while i < n:
+        b0 = data[i]
+        b1 = data[i + 1] if i + 1 < n else 0
+        b2 = data[i + 2] if i + 2 < n else 0
+        triple = (b0 << 16) | (b1 << 8) | b2
+        out.append(_B64_CHARS[(triple >> 18) & 0x3F])
+        out.append(_B64_CHARS[(triple >> 12) & 0x3F])
+        out.append(_B64_CHARS[(triple >> 6) & 0x3F] if i + 1 < n else "=")
+        out.append(_B64_CHARS[triple & 0x3F] if i + 2 < n else "=")
+        i += 3
+    return "".join(out)
+
+
+def xml_escape(s):
+    return (
+        str(s or "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&apos;")
+    )
 
 
 def now_str():
@@ -98,7 +142,6 @@ def split_jp_kana(jp_raw):
     if len(lines) == 2 and _is_kana_only(lines[1]) and not _is_kana_only(lines[0]):
         return lines[0], lines[1]
 
-    # Single word with trailing full-width parenthesized kana: e.g. 視野角（しやかく）
     if jp.endswith("）") and "（" in jp and "/" not in jp and "\n" not in jp:
         left_idx = jp.rfind("（")
         head = jp[:left_idx].strip()
@@ -106,14 +149,12 @@ def split_jp_kana(jp_raw):
         if head and inner and "（" not in head and "(" not in head and _is_kana_only(inner):
             return head, inner
 
-    # Leading kana + space/full-width-space + kanji: e.g. けんしょう　検証
     normalized_ws = jp.replace("\u3000", " ")
     if " " in normalized_ws and "\n" not in normalized_ws:
         parts = [p for p in normalized_ws.split(" ") if p]
         if len(parts) == 2 and _is_kana_only(parts[0]) and not _is_kana_only(parts[1]):
             return parts[1].strip(), parts[0].strip()
 
-    # Compact leading hiragana + kanji: e.g. ぎゃくさん⓪逆算
     if "\n" not in jp and " " not in normalized_ws and "/" not in jp:
         idx = 0
         n = len(jp)
@@ -392,6 +433,136 @@ def parse_batch_text(raw_text, fmt="tsv", default_category="未分类"):
     return items
 
 
+# ---------- TTS Audio Fetch Helpers (Lock-Screen Audio Mode) ----------
+def _is_valid_audio_bytes(content, content_type=""):
+    if not content or len(content) < 256:
+        return False
+    ct = (content_type or "").lower()
+    if "text/html" in ct or "application/json" in ct or "text/plain" in ct:
+        return False
+    head = content[:16].lstrip()
+    if head.startswith(b"<") or head.startswith(b"{"):
+        return False
+    return True
+
+
+def _fetch_youdao_tts(text, lang_code):
+    short = lang_code.lower()[:2]
+    if short == "ja":
+        params = {"audio": text, "le": "jap"}
+    elif short == "zh":
+        params = {"audio": text, "le": "zh"}
+    else:
+        params = {"audio": text, "le": "en", "type": "2"}
+    r = _requests.get(
+        "https://dict.youdao.com/dictvoice",
+        params=params,
+        headers={
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+            "Referer": "https://dict.youdao.com/",
+        },
+        timeout=7,
+    )
+    if r.status_code == 200 and _is_valid_audio_bytes(r.content, r.headers.get("Content-Type", "")):
+        return r.content, "audio/mpeg", "youdao"
+    return None, None, "youdao(" + str(r.status_code) + ")"
+
+
+def _fetch_baidu_tts(text, lang_code):
+    short = lang_code.lower()[:2]
+    lan = "jp" if short == "ja" else ("zh" if short == "zh" else "en")
+    r = _requests.get(
+        "https://fanyi.baidu.com/gettts",
+        params={"lan": lan, "text": text, "spd": "3", "source": "web"},
+        headers={
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+            "Referer": "https://fanyi.baidu.com/",
+        },
+        timeout=7,
+    )
+    if r.status_code == 200 and _is_valid_audio_bytes(r.content, r.headers.get("Content-Type", "")):
+        return r.content, "audio/mpeg", "baidu"
+    return None, None, "baidu(" + str(r.status_code) + ")"
+
+
+def _fetch_azure_tts(text, lang_code, azure_key, azure_region, jp_voice="ja-JP-NanamiNeural"):
+    region = (azure_region or "eastasia").strip().lower()
+    short = lang_code.lower()[:2]
+    if short == "ja":
+        xml_lang = "ja-JP"
+        voice = (jp_voice or "ja-JP-NanamiNeural").strip()
+    elif short == "zh":
+        xml_lang = "zh-CN"
+        voice = "zh-CN-XiaoxiaoNeural"
+    else:
+        xml_lang = "en-US"
+        voice = "en-US-JennyNeural"
+
+    ssml = (
+        "<speak version='1.0' xml:lang='"
+        + xml_lang
+        + "'><voice name='"
+        + xml_escape(voice)
+        + "'>"
+        + xml_escape(text)
+        + "</voice></speak>"
+    )
+    url = "https://" + region + ".tts.speech.microsoft.com/cognitiveservices/v1"
+    r = _requests.post(
+        url,
+        data=ssml.encode("utf-8"),
+        headers={
+            "Ocp-Apim-Subscription-Key": azure_key.strip(),
+            "Content-Type": "application/ssml+xml",
+            "X-Microsoft-OutputFormat": "audio-16khz-64kbitrate-mono-mp3",
+            "User-Agent": "KotoNote/4.0",
+        },
+        timeout=8,
+    )
+    if r.status_code == 200 and _is_valid_audio_bytes(r.content, r.headers.get("Content-Type", "")):
+        return r.content, "audio/mpeg", "azure"
+    return None, None, "azure(" + str(r.status_code) + ")"
+
+
+def synthesize_tts(text, lang_code, provider="free", azure_key="", azure_region="eastasia", azure_jp_voice="ja-JP-NanamiNeural"):
+    if _requests is None:
+        return None, None, None, "云函数环境缺少 requests 模块"
+
+    clean = str(text or "").strip()
+    if not clean:
+        return None, None, None, "朗读文本为空"
+    if len(clean) > 260:
+        clean = clean[:260]
+
+    errors = []
+
+    if provider == "azure":
+        if not azure_key:
+            errors.append("未配置 Azure Speech Key")
+        else:
+            try:
+                data, mime, used = _fetch_azure_tts(clean, lang_code, azure_key, azure_region, azure_jp_voice)
+                if data:
+                    return data, mime, used, None
+                errors.append(used)
+            except Exception as e:
+                errors.append("azure:" + str(e))
+
+    # Free multi-provider chain: Baidu first for zh, Youdao first for ja/en, with cross-fallback
+    short = lang_code.lower()[:2]
+    chain = (_fetch_baidu_tts, _fetch_youdao_tts) if short == "zh" else (_fetch_youdao_tts, _fetch_baidu_tts)
+    for fn in chain:
+        try:
+            data, mime, used = fn(clean, lang_code)
+            if data:
+                return data, mime, used, None
+            errors.append(used)
+        except Exception as e:
+            errors.append(fn.__name__ + ":" + str(e))
+
+    return None, None, None, "; ".join(errors) or "语音合成失败"
+
+
 # ---------- HTTP Request / Response Helpers ----------
 def set_header(name, value):
     try:
@@ -400,11 +571,40 @@ def set_header(name, value):
         pass
 
 
-def send_json(data, status=200):
+def set_cors_headers():
+    set_header("Access-Control-Allow-Origin", "*")
+    set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    set_header("Access-Control-Allow-Headers", "Content-Type")
+
+
+def _safe_jsonp_callback(cb):
+    cb = str(cb or "").strip()
+    if not cb or len(cb) > 64:
+        return ""
+    allowed = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_$"
+    for ch in cb:
+        if ch not in allowed:
+            return ""
+    return cb
+
+
+def send_json(data, status=200, jsonp_callback=""):
+    cb = _safe_jsonp_callback(jsonp_callback)
+    if cb:
+        try:
+            response.status_code = 200
+        except Exception:
+            pass
+        set_cors_headers()
+        set_header("Content-Type", "application/javascript; charset=utf-8")
+        set_header("Cache-Control", "no-store")
+        print(cb + "(" + json.dumps(data, ensure_ascii=False) + ");")
+        return
     try:
         response.status_code = status
     except Exception:
         pass
+    set_cors_headers()
     set_header("Content-Type", "application/json; charset=utf-8")
     set_header("Cache-Control", "no-store")
     print(json.dumps(data, ensure_ascii=False))
@@ -415,6 +615,7 @@ def send_tsv(tsv_text):
         response.status_code = 200
     except Exception:
         pass
+    set_cors_headers()
     set_header("Content-Type", "text/tab-separated-values; charset=utf-8")
     set_header("Content-Disposition", 'attachment; filename="kotonote-terms.tsv"')
     set_header("Cache-Control", "no-store")
@@ -472,8 +673,22 @@ def get_action():
     return "health"
 
 
+def get_method():
+    try:
+        m = getattr(request, "method", None)
+        if m:
+            return str(m).upper()
+    except Exception:
+        pass
+    return "GET"
+
+
 # ---------- Action Router ----------
 def handle_request():
+    if get_method() == "OPTIONS":
+        send_json({"ok": True}, 200)
+        return
+
     action = get_action()
 
     if action == "health":
@@ -481,10 +696,55 @@ def handle_request():
         send_json(
             {
                 "status": "ok",
+                "version": 4,
                 "storage": "Retiehe KV Database",
                 "database": DB_NAME,
                 "wordCount": len(words),
+                "ttsReady": _requests is not None,
             }
+        )
+        return
+
+    if action == "tts":
+        body = get_json_body()
+        try:
+            q_text = request.args.get("text")
+            q_lang = request.args.get("lang")
+            q_provider = request.args.get("provider")
+            q_cb = request.args.get("callback")
+        except Exception:
+            q_text, q_lang, q_provider, q_cb = None, None, None, None
+
+        text = str(body.get("text") or q_text or "").strip()
+        lang = str(body.get("lang") or q_lang or "ja-JP").strip()
+        saved = load_settings()
+        provider = str(body.get("provider") or q_provider or saved.get("ttsProvider") or "free").strip().lower()
+        azure_key = str(body.get("azureKey") if body.get("azureKey") is not None else saved.get("azureKey") or "").strip()
+        azure_region = str(body.get("azureRegion") or saved.get("azureRegion") or "eastasia").strip()
+        azure_jp_voice = str(body.get("azureJpVoice") or saved.get("azureJpVoice") or "ja-JP-NanamiNeural").strip()
+
+        data, mime, used, err = synthesize_tts(
+            text=text,
+            lang_code=lang,
+            provider=provider,
+            azure_key=azure_key,
+            azure_region=azure_region,
+            azure_jp_voice=azure_jp_voice,
+        )
+        if not data:
+            send_json({"ok": False, "detail": err or "TTS 合成失败"}, 502, jsonp_callback=q_cb)
+            return
+
+        send_json(
+            {
+                "ok": True,
+                "provider": used,
+                "mime": mime,
+                "bytes": len(data),
+                "b64": b64_encode(data),
+            },
+            200,
+            jsonp_callback=q_cb,
         )
         return
 
@@ -644,6 +904,88 @@ def handle_request():
         )
         return
 
+    if action == "import_rows":
+        body = get_json_body()
+        raw_items = body.get("items")
+        replace = bool(body.get("replace", False))
+        if not isinstance(raw_items, list) or not raw_items:
+            send_json({"detail": "没有可导入的词条数据"}, 400)
+            return
+
+        words = [] if replace else load_words()
+        meta = load_meta()
+        next_id = 1 if replace else int(meta.get("nextWordId", len(words) + 1))
+        index_by_key = {(w.get("zh", ""), w.get("jp", ""), w.get("en", "")): w for w in words}
+        ts = now_str()
+        added = 0
+        updated = 0
+        skipped = 0
+        newly_created = []
+
+        for item in raw_items:
+            if not isinstance(item, dict):
+                skipped += 1
+                continue
+            jp = str(item.get("jp") or "").strip()
+            kana = str(item.get("kana") or "").strip()
+            zh = str(item.get("zh") or "").strip()
+            en = str(item.get("en") or "").strip()
+            note = str(item.get("note") or "").strip()
+            cat = str(item.get("category") or "Excel导入").strip() or "Excel导入"
+            if not (jp or zh or en):
+                skipped += 1
+                continue
+
+            key = (zh, jp, en)
+            existing = None if replace else index_by_key.get(key)
+            if existing:
+                changed = False
+                if kana and existing.get("kana", "") != kana:
+                    existing["kana"] = kana
+                    changed = True
+                if note and note not in existing.get("note", ""):
+                    existing["note"] = (existing.get("note", "") + "\n" + note).strip()
+                    changed = True
+                if cat and existing.get("category", "") != cat:
+                    existing["category"] = cat
+                    changed = True
+                if changed:
+                    existing["updated_at"] = ts
+                    updated += 1
+                else:
+                    skipped += 1
+            else:
+                new_word = {
+                    "id": next_id,
+                    "jp": jp,
+                    "kana": kana,
+                    "zh": zh,
+                    "en": en,
+                    "category": cat,
+                    "note": note,
+                    "created_at": ts,
+                    "updated_at": ts,
+                    "entries": [],
+                }
+                next_id += 1
+                newly_created.append(new_word)
+                index_by_key[key] = new_word
+                added += 1
+
+        if newly_created:
+            words = newly_created + words
+        meta["seeded"] = True
+        meta["nextWordId"] = next_id
+        save_words(words, meta)
+        send_json(
+            {
+                "stats": {"added": added, "updated": updated, "skipped": skipped},
+                "words": words,
+                "categories": compute_categories(words),
+            }
+        )
+        return
+
     if action == "add_word_entry":
         body = get_json_body()
         word_id = body.get("wordId")
@@ -732,16 +1074,18 @@ def handle_request():
 
     if action == "export_json":
         words = load_words()
+        safe_settings = dict(load_settings())
+        safe_settings["azureKey"] = ""
         set_header("Content-Disposition", 'attachment; filename="kotonote-backup.json"')
         send_json(
             {
                 "app": "KotoNote",
-                "version": 2,
+                "version": 4,
                 "storage": "Retiehe KV Database",
                 "exportedAt": now_str(),
                 "words": words,
                 "scratch": load_scratch(),
-                "settings": load_settings(),
+                "settings": safe_settings,
             }
         )
         return

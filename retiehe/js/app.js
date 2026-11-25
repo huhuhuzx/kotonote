@@ -3,6 +3,8 @@
 
   const API = window.KotoAPI;
   const Speech = window.KotoSpeech;
+  const BgAudio = window.KotoBgAudio;
+  const Excel = window.KotoExcel;
   const $ = (id) => document.getElementById(id);
 
   const isIOS = /iP(hone|ad|od)/i.test(navigator.userAgent) ||
@@ -20,21 +22,38 @@
       durationMin: 15,
       rate: 1.0,
       langPauseSec: 2.5,
-      jpVoice: ''
+      jpVoice: '',
+      audioEngine: 'bg_audio',
+      ttsProvider: 'free',
+      azureRegion: 'eastasia',
+      azureKey: '',
+      azureJpVoice: 'ja-JP-NanamiNeural'
     },
     activeTab: 'study',
     studyIndex: 0,
     noteTab: 'word',
     batchFormat: 'tsv',
+    lexiconSpeakingId: null,
+    excel: {
+      fileName: '',
+      sheets: [],
+      selectedSheet: '0',
+      mode: 'append',
+      hasHeader: true,
+      headerRowIndex: 0,
+      strictRaw: true,
+      colMap: { jp: -1, kana: -1, zh: -1, en: -1, note: -1, category: -1 }
+    },
     // Recite
     isPlaying: false,
+    isBuffering: false,
     playOrder: [],
     playPos: 0,
     activeLang: null,
     jpRepeatPass: 0,
     remainingSec: 15 * 60,
+    timerEndTs: null,
     timerInterval: null,
-    lastTickTs: null,
     wakeLock: null,
     wakeLockWanted: false
   };
@@ -77,6 +96,30 @@
     return state.words.filter((w) => w.category === state.selectedCategory);
   }
 
+  function isBgAudioMode() {
+    return Boolean(BgAudio) && (state.settings.audioEngine || 'bg_audio') === 'bg_audio';
+  }
+
+  function getBgAudioOpts() {
+    return {
+      rate: Number(state.settings.rate || 1.0),
+      langPauseSec: Number(state.settings.langPauseSec || 2.5),
+      ttsProvider: state.settings.ttsProvider || 'free',
+      azureKey: state.settings.azureKey || '',
+      azureRegion: state.settings.azureRegion || 'eastasia',
+      azureJpVoice: state.settings.azureJpVoice || 'ja-JP-NanamiNeural'
+    };
+  }
+
+  async function refreshAudioCacheLabel() {
+    const el = $('audio-cache-sub');
+    if (!el || !BgAudio) return;
+    try {
+      const count = await BgAudio.getCacheCount();
+      el.textContent = `已缓存 ${count} 条语音片段（听过的词断网也能锁屏播）`;
+    } catch {}
+  }
+
   function applyTheme() {
     const theme = state.settings.theme || 'light';
     document.documentElement.setAttribute('data-theme', theme);
@@ -107,12 +150,17 @@
     return scoped[state.studyIndex];
   }
 
-  function getCurrentReciteWord() {
+  function getWordAtPlayPos(pos) {
     const scoped = getScopedWords();
     if (!scoped.length) return null;
     if (!state.playOrder.length) rebuildPlayOrder(true);
-    const id = state.playOrder[state.playPos];
+    const wrapped = ((pos % state.playOrder.length) + state.playOrder.length) % state.playOrder.length;
+    const id = state.playOrder[wrapped];
     return scoped.find((w) => w.id === id) || scoped[0];
+  }
+
+  function getCurrentReciteWord() {
+    return getWordAtPlayPos(state.playPos);
   }
 
   function renderCategoryStrips() {
@@ -230,6 +278,70 @@
       .join('');
   }
 
+  function renderEngineSettingsUI() {
+    const bgMode = isBgAudioMode();
+    const provider = state.settings.ttsProvider || 'free';
+
+    document.querySelectorAll('[data-engine]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.engine === (bgMode ? 'bg_audio' : 'system'));
+    });
+
+    document.querySelectorAll('[data-tts-provider]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.ttsProvider === provider);
+    });
+
+    const ttsProviderRow = $('tts-provider-row');
+    const azureBox = $('azure-config-box');
+    const cacheRow = $('audio-cache-row');
+    const sysVoiceRow = $('system-voice-row');
+
+    if (ttsProviderRow) ttsProviderRow.style.display = bgMode ? 'flex' : 'none';
+    if (cacheRow) cacheRow.style.display = bgMode ? 'flex' : 'none';
+    if (azureBox) azureBox.classList.toggle('show', bgMode && provider === 'azure');
+    if (sysVoiceRow) sysVoiceRow.style.display = bgMode ? 'none' : 'flex';
+
+    const banner = $('recite-engine-banner');
+    const statusText = $('recite-engine-status-text');
+    if (banner && statusText) {
+      banner.classList.toggle('system-mode', !bgMode);
+      banner.classList.toggle('buffering', bgMode && state.isBuffering);
+      if (bgMode) {
+        if (state.isBuffering) {
+          statusText.textContent = '⏳ 正在合成并缓存本词无缝音频…';
+        } else {
+          const provLabel = provider === 'azure' && state.settings.azureKey ? 'Azure 神经网络' : '免费云端音源';
+          statusText.textContent = `🔒 锁屏音频模式（${provLabel}）· 支持切后台与锁屏连播`;
+        }
+      } else {
+        statusText.textContent = '📱 系统离线语音模式 · 仅限亮屏前台使用';
+      }
+    }
+
+    const regionInput = $('azure-region-input');
+    const keyInput = $('azure-key-input');
+    const jpVoiceSel = $('azure-jp-voice-select');
+    if (regionInput && document.activeElement !== regionInput) {
+      regionInput.value = state.settings.azureRegion || 'eastasia';
+    }
+    if (keyInput && document.activeElement !== keyInput) {
+      keyInput.value = state.settings.azureKey || '';
+    }
+    if (jpVoiceSel && jpVoiceSel.value !== (state.settings.azureJpVoice || 'ja-JP-NanamiNeural')) {
+      jpVoiceSel.value = state.settings.azureJpVoice || 'ja-JP-NanamiNeural';
+    }
+
+    const tipBox = $('voice-tip-box');
+    if (tipBox) {
+      if (bgMode) {
+        tipBox.innerHTML =
+          '<strong>🔒 锁屏后台播放说明：</strong>开启「锁屏音频」后，系统会将每个词的 <strong>日×2 → 停顿 → 中 → 停顿 → 英</strong> 无缝合成连续音频并预加载下一词，支持 iPhone / 安卓 <strong>锁屏、切后台、控制中心与耳机切词</strong>；已播音频自动缓存到本机，二次复习秒播。';
+      } else {
+        tipBox.innerHTML =
+          '<strong>💡 系统语音优化提示：</strong>iPhone 可在 <strong>设置 → 辅助功能 → 朗读内容 → 声音 → 日语</strong> 下载 <strong>Kyoko（优化版）</strong> 或 <strong>Hattori</strong>。如需锁屏或后台继续听，请切回上方的「🔒 锁屏音频」模式。';
+      }
+    }
+  }
+
   function renderRecite() {
     const scoped = getScopedWords();
     const word = getCurrentReciteWord();
@@ -285,6 +397,19 @@
       }
     }
 
+    const kanaPill = $('recite-kana-speech-pill');
+    if (kanaPill) {
+      if (word && (word.jp || word.kana)) {
+        const spokenJp = Speech.resolveJapaneseSpeechText(word.jp, word.kana);
+        const showPill = Boolean(spokenJp && (word.kana || spokenJp !== (word.jp || '').trim()));
+        kanaPill.textContent = showPill ? `按假名朗读：${spokenJp}` : '';
+        kanaPill.classList.toggle('show', showPill);
+      } else {
+        kanaPill.textContent = '';
+        kanaPill.classList.remove('show');
+      }
+    }
+
     const voiceSelect = $('jp-voice-select');
     if (voiceSelect && voiceSelect.value !== (state.settings.jpVoice || '')) {
       voiceSelect.value = state.settings.jpVoice || '';
@@ -292,6 +417,8 @@
 
     $('wake-lock-btn').classList.toggle('on', Boolean(state.wakeLock));
     $('wake-lock-label').textContent = state.wakeLock ? '常亮已开' : '屏幕常亮';
+
+    renderEngineSettingsUI();
   }
 
   function renderLexicon() {
@@ -336,8 +463,11 @@
           <div class="word-item" data-open-id="${w.id}">
             <div class="word-item-main">
               <div class="word-item-jp">
-                <span>${escapeHtml(w.jp || '（待补充日语）')}</span>
-                ${w.kana ? `<span class="word-item-kana">${escapeHtml(w.kana)}</span>` : ''}
+                <div class="word-item-jp-btn ${state.lexiconSpeakingId === w.id ? 'speaking' : ''}" data-speak-jp-id="${w.id}" title="点按朗读日语">
+                  <span>${escapeHtml(w.jp || '（待补充日语）')}</span>
+                  ${w.kana ? `<span class="word-item-kana">${escapeHtml(w.kana)}</span>` : ''}
+                  ${(w.jp || w.kana) ? '<span class="word-item-speak-icon">🔊</span>' : ''}
+                </div>
               </div>
               <div class="word-item-zh">${escapeHtml(w.zh || '（待补充中文）')}</div>
               ${w.en ? `<div class="word-item-en">${escapeHtml(w.en)}</div>` : ''}
@@ -363,26 +493,31 @@
     renderLexicon();
   }
 
-  // ---------- Recite Loop (Strictly JP -> ZH -> EN, skips empty fields cleanly) ----------
+  // ---------- Wall-Clock Accurate Timer (Survives Lock-Screen Throttling) ----------
+  function syncRemainingFromClock() {
+    if (!state.isPlaying || !state.timerEndTs) return;
+    state.remainingSec = Math.max(0, (state.timerEndTs - Date.now()) / 1000);
+    $('recite-timer-text').textContent = formatTime(state.remainingSec);
+  }
+
   function startTimer() {
     stopTimer();
-    state.lastTickTs = Date.now();
+    state.timerEndTs = Date.now() + Math.max(1, state.remainingSec) * 1000;
     state.timerInterval = setInterval(() => {
       if (!state.isPlaying) return;
-      const now = Date.now();
-      const delta = (now - state.lastTickTs) / 1000;
-      state.lastTickTs = now;
-      state.remainingSec = Math.max(0, state.remainingSec - delta);
-      $('recite-timer-text').textContent = formatTime(state.remainingSec);
-
+      syncRemainingFromClock();
       if (state.remainingSec <= 0) {
         stopRecite(true);
         showToast('⏰ 定时背词已完成，辛苦了！', 3800);
       }
-    }, 400);
+    }, 500);
   }
 
   function stopTimer() {
+    if (state.timerEndTs && state.isPlaying) {
+      state.remainingSec = Math.max(0, (state.timerEndTs - Date.now()) / 1000);
+    }
+    state.timerEndTs = null;
     if (state.timerInterval) {
       clearInterval(state.timerInterval);
       state.timerInterval = null;
@@ -408,7 +543,110 @@
     sel.value = list.some((x) => x.name === currentVal) ? currentVal : '';
   }
 
-  async function runReciteLoop(sessionId, isFirstGestureCall = false) {
+  // ---------- Recite Loop: Mode 1 — Lock-Screen Continuous <audio> ----------
+  async function runReciteBgAudioLoop(bgSessionId) {
+    let consecutiveErrors = 0;
+
+    while (state.isPlaying && bgSessionId === BgAudio.getSessionId()) {
+      if (state.timerEndTs && Date.now() >= state.timerEndTs) {
+        stopRecite(true);
+        showToast('⏰ 定时背词已完成，辛苦了！', 3800);
+        return;
+      }
+
+      const word = getCurrentReciteWord();
+      if (!word) {
+        stopRecite(false);
+        return;
+      }
+
+      const opts = getBgAudioOpts();
+      BgAudio.updateMediaSession(word, true);
+
+      let track = BgAudio.getCachedTrack(word, opts);
+      if (!track) {
+        state.isBuffering = true;
+        renderRecite();
+        // Keep silent audio alive during network fetch so iOS doesn't suspend lock-screen session
+        BgAudio.keepAliveSilent();
+        try {
+          track = await BgAudio.prepareWordTrack(word, opts);
+        } catch (err) {
+          if (!state.isPlaying || bgSessionId !== BgAudio.getSessionId()) return;
+          consecutiveErrors += 1;
+          state.isBuffering = false;
+          renderRecite();
+          if (consecutiveErrors >= 2) {
+            showToast('云端音频暂不可用，已自动切换为系统语音继续背词：' + err.message, 4200);
+            state.settings.audioEngine = 'system';
+            BgAudio.stop(false);
+            const spSid = Speech.cancel();
+            runReciteSystemLoop(spSid, false);
+            return;
+          }
+          showToast('获取本词音频失败，跳过下一词…', 2400);
+          state.playPos = (state.playPos + 1) % Math.max(1, state.playOrder.length);
+          continue;
+        }
+      }
+
+      if (!state.isPlaying || bgSessionId !== BgAudio.getSessionId()) return;
+      state.isBuffering = false;
+      consecutiveErrors = 0;
+
+      if (!track) {
+        state.playPos += 1;
+        if (state.playPos >= state.playOrder.length) rebuildPlayOrder(true);
+        continue;
+      }
+
+      // Immediately prefetch next word while current word is playing (zero-gap transition on lock screen!)
+      const nextWord = getWordAtPlayPos(state.playPos + 1);
+      if (nextWord && nextWord.id !== word.id) {
+        BgAudio.prepareWordTrack(nextWord, opts).then(() => refreshAudioCacheLabel()).catch(() => {});
+      }
+
+      const ok = await BgAudio.playTrack(track, {
+        rate: opts.rate,
+        expectedSession: bgSessionId,
+        onSegmentChange: (lang, pass) => {
+          if (!state.isPlaying || bgSessionId !== BgAudio.getSessionId()) return;
+          state.activeLang = lang;
+          state.jpRepeatPass = pass;
+          renderRecite();
+        }
+      });
+
+      refreshAudioCacheLabel();
+
+      if (!state.isPlaying || bgSessionId !== BgAudio.getSessionId()) return;
+      if (!ok) {
+        consecutiveErrors += 1;
+        if (consecutiveErrors >= 2) {
+          stopRecite(false);
+          showToast('音频播放被系统中断，请点击播放按钮继续', 3400);
+          return;
+        }
+      }
+
+      if (state.timerEndTs && Date.now() >= state.timerEndTs) {
+        stopRecite(true);
+        showToast('⏰ 定时背词已完成，辛苦了！', 3800);
+        return;
+      }
+
+      state.playPos += 1;
+      if (state.playPos >= state.playOrder.length) {
+        rebuildPlayOrder(true);
+      }
+      state.activeLang = null;
+      state.jpRepeatPass = 0;
+      renderRecite();
+    }
+  }
+
+  // ---------- Recite Loop: Mode 2 — Browser System Speech ----------
+  async function runReciteSystemLoop(sessionId, isFirstGestureCall = false) {
     let syncFirst = isFirstGestureCall;
     while (state.isPlaying && sessionId === Speech.getSessionId()) {
       const word = getCurrentReciteWord();
@@ -420,10 +658,10 @@
       const langPauseMs = Math.round(Number(state.settings.langPauseSec || 2.5) * 1000);
       const jpRepeatGapMs = 850;
       const steps = [
-        { lang: 'jp', text: word.jp, code: 'ja-JP', repeat: 2 },
-        { lang: 'zh', text: word.zh, code: 'zh-CN', repeat: 1 },
-        { lang: 'en', text: word.en, code: 'en-US', repeat: 1 }
-      ].filter((s) => s.text && s.text.trim());
+        { lang: 'jp', text: word.jp, kana: word.kana || '', code: 'ja-JP', repeat: 2 },
+        { lang: 'zh', text: word.zh, kana: '', code: 'zh-CN', repeat: 1 },
+        { lang: 'en', text: word.en, kana: '', code: 'en-US', repeat: 1 }
+      ].filter((s) => (s.text && s.text.trim()) || (s.kana && s.kana.trim()));
 
       for (const step of steps) {
         if (!state.isPlaying || sessionId !== Speech.getSessionId()) return;
@@ -438,6 +676,7 @@
             rate: state.settings.rate,
             syncStart: syncFirst,
             preferredVoiceName: state.settings.jpVoice || '',
+            kanaHint: step.lang === 'jp' ? step.kana : '',
             onNotice: (m) => showToast(m, 3200)
           });
           syncFirst = false;
@@ -449,7 +688,6 @@
         }
 
         state.jpRepeatPass = 0;
-        // 2-3s pause between every language (日×2 -> 中, 中 -> 英, 英 -> 下一词日)
         if (!(await Speech.waitMs(langPauseMs, sessionId))) return;
       }
 
@@ -469,20 +707,36 @@
       showToast('当前分类暂无词条');
       return;
     }
-    Speech.wakeAudioRoute();
     if (state.remainingSec <= 0) {
       state.remainingSec = state.settings.durationMin * 60;
     }
-    const sessionId = Speech.cancel();
-    state.isPlaying = true;
-    startTimer();
-    runReciteLoop(sessionId, true);
+
+    if (isBgAudioMode()) {
+      Speech.cancel(true);
+      // MUST unlock persistent <audio> synchronously inside user click gesture!
+      BgAudio.unlockSync();
+      const bgSid = BgAudio.nextSession();
+      state.isPlaying = true;
+      startTimer();
+      renderRecite();
+      runReciteBgAudioLoop(bgSid);
+    } else {
+      if (BgAudio) BgAudio.stop(false);
+      Speech.wakeAudioRoute();
+      const sessionId = Speech.cancel();
+      state.isPlaying = true;
+      startTimer();
+      renderRecite();
+      runReciteSystemLoop(sessionId, true);
+    }
   }
 
   function stopRecite(resetLang = true) {
-    state.isPlaying = false;
     stopTimer();
+    state.isPlaying = false;
+    state.isBuffering = false;
     Speech.cancel(true);
+    if (BgAudio) BgAudio.stop(true);
     if (resetLang) state.activeLang = null;
     state.jpRepeatPass = 0;
     renderRecite();
@@ -493,14 +747,60 @@
     if (!scoped.length) return;
     const wasPlaying = state.isPlaying;
     Speech.cancel(true);
+    if (BgAudio) BgAudio.stop(false);
     state.playPos = (state.playPos + dir + state.playOrder.length) % state.playOrder.length;
     state.activeLang = null;
+    state.jpRepeatPass = 0;
+    state.isBuffering = false;
     renderRecite();
     if (wasPlaying) {
-      Speech.wakeAudioRoute();
-      const sid = Speech.getSessionId();
-      runReciteLoop(sid, true);
+      if (isBgAudioMode()) {
+        BgAudio.unlockSync();
+        const bgSid = BgAudio.nextSession();
+        runReciteBgAudioLoop(bgSid);
+      } else {
+        Speech.wakeAudioRoute();
+        const sid = Speech.getSessionId();
+        runReciteSystemLoop(sid, true);
+      }
     }
+  }
+
+  // Register lock-screen / AirPods / Control Center media controls
+  if (BgAudio) {
+    BgAudio.setMediaHandlers({
+      onPlay: () => {
+        if (!state.isPlaying) startRecite();
+      },
+      onPause: () => {
+        if (state.isPlaying) stopRecite(false);
+      },
+      onPrev: () => stepRecite(-1),
+      onNext: () => stepRecite(1)
+    });
+  }
+
+  // ---------- Unified Single Speak (Study / Lexicon) ----------
+  async function speakPhraseWithActiveEngine(text, langCode, kanaHint = '') {
+    if (isBgAudioMode()) {
+      try {
+        const ok = await BgAudio.speakSingle(text, langCode, {
+          ...getBgAudioOpts(),
+          kanaHint
+        });
+        refreshAudioCacheLabel();
+        if (ok) return true;
+      } catch {
+        // Silently fallback to system speech if network unavailable in study mode
+      }
+    }
+    return await Speech.speak(text, langCode, {
+      rate: state.settings.rate,
+      syncStart: true,
+      preferredVoiceName: state.settings.jpVoice || '',
+      kanaHint,
+      onNotice: (m) => showToast(m, 3200)
+    });
   }
 
   // ---------- Study Speech ----------
@@ -508,25 +808,21 @@
     const word = getCurrentStudyWord();
     if (!word) return;
     const map = {
-      jp: { text: word.jp, code: 'ja-JP' },
-      zh: { text: word.zh, code: 'zh-CN' },
-      en: { text: word.en, code: 'en-US' }
+      jp: { text: word.jp, kana: word.kana || '', code: 'ja-JP' },
+      zh: { text: word.zh, kana: '', code: 'zh-CN' },
+      en: { text: word.en, kana: '', code: 'en-US' }
     };
     const item = map[lang];
-    if (!item || !item.text || !item.text.trim()) {
+    if (!item || (!(item.text && item.text.trim()) && !(item.kana && item.kana.trim()))) {
       showToast('该语言字段为空，可点右上角编辑补充');
       return;
     }
     if (state.isPlaying) stopRecite(true);
-    Speech.wakeAudioRoute();
+    if (isBgAudioMode()) BgAudio.unlockSync();
+    else Speech.wakeAudioRoute();
     const sid = Speech.cancel();
     setStudyHighlight(lang);
-    await Speech.speak(item.text, item.code, {
-      rate: state.settings.rate,
-      syncStart: true,
-      preferredVoiceName: state.settings.jpVoice || '',
-      onNotice: (m) => showToast(m, 3200)
-    });
+    await speakPhraseWithActiveEngine(item.text, item.code, lang === 'jp' ? item.kana : '');
     if (sid === Speech.getSessionId()) setStudyHighlight(null);
   }
 
@@ -534,32 +830,61 @@
     const word = getCurrentStudyWord();
     if (!word) return;
     if (state.isPlaying) stopRecite(true);
-    Speech.wakeAudioRoute();
+    if (isBgAudioMode()) BgAudio.unlockSync();
+    else Speech.wakeAudioRoute();
     const sid = Speech.cancel();
 
     const steps = [
-      { lang: 'jp', text: word.jp, code: 'ja-JP' },
-      { lang: 'zh', text: word.zh, code: 'zh-CN' },
-      { lang: 'en', text: word.en, code: 'en-US' }
-    ].filter((s) => s.text && s.text.trim());
+      { lang: 'jp', text: word.jp, kana: word.kana || '', code: 'ja-JP' },
+      { lang: 'zh', text: word.zh, kana: '', code: 'zh-CN' },
+      { lang: 'en', text: word.en, kana: '', code: 'en-US' }
+    ].filter((s) => (s.text && s.text.trim()) || (s.kana && s.kana.trim()));
 
     for (let i = 0; i < steps.length; i++) {
       if (sid !== Speech.getSessionId()) return;
       setStudyHighlight(steps[i].lang);
-      await Speech.speak(steps[i].text, steps[i].code, {
-        rate: state.settings.rate,
-        syncStart: i === 0,
-        preferredVoiceName: state.settings.jpVoice || '',
-        onNotice: (m) => showToast(m, 3200)
-      });
+      await speakPhraseWithActiveEngine(steps[i].text, steps[i].code, steps[i].lang === 'jp' ? steps[i].kana : '');
       if (sid !== Speech.getSessionId()) return;
       await Speech.waitMs(360, sid);
     }
     if (sid === Speech.getSessionId()) setStudyHighlight(null);
   }
 
+  async function lexiconSpeakJp(wordId) {
+    const word = state.words.find((w) => Number(w.id) === Number(wordId));
+    if (!word || (!(word.jp && word.jp.trim()) && !(word.kana && word.kana.trim()))) return;
+    if (state.isPlaying) stopRecite(true);
+    if (isBgAudioMode()) BgAudio.unlockSync();
+    else Speech.wakeAudioRoute();
+    const sid = Speech.cancel();
+    state.lexiconSpeakingId = word.id;
+    renderLexicon();
+    await speakPhraseWithActiveEngine(word.jp, 'ja-JP', word.kana || '');
+    if (sid === Speech.getSessionId()) {
+      state.lexiconSpeakingId = null;
+      renderLexicon();
+    }
+  }
+
   async function testVoiceDiagnostic() {
     if (state.isPlaying) stopRecite(true);
+    if (isBgAudioMode()) {
+      BgAudio.unlockSync();
+      showToast('正在测试云端锁屏音频通道（日 / 中 / 英）…', 2400);
+      try {
+        const opts = getBgAudioOpts();
+        const jpClip = await BgAudio.fetchClip('こんにちは、しやかく', 'ja-JP', opts);
+        if (!(await BgAudio.speakSingle('こんにちは、しやかく', 'ja-JP', opts))) return;
+        if (!(await BgAudio.speakSingle('视角', 'zh-CN', opts))) return;
+        if (!(await BgAudio.speakSingle('View Angles', 'en-US', opts))) return;
+        refreshAudioCacheLabel();
+        showToast(`✅ 锁屏音频自检通过（音源：${jpClip.provider || '云端'}），锁屏后也可连播`, 3800);
+      } catch (err) {
+        showToast('❌ 云端音频测试失败：' + err.message, 4500);
+      }
+      return;
+    }
+
     Speech.wakeAudioRoute();
     const sid = Speech.cancel();
     Speech.loadVoices();
@@ -583,7 +908,7 @@
     await Speech.speak('Hello', 'en-US', { rate: state.settings.rate, syncStart: false });
   }
 
-  // ---------- Wake Lock ----------
+  // ---------- Wake Lock & Visibility Sync ----------
   async function toggleWakeLock() {
     if (!('wakeLock' in navigator)) {
       showToast('当前浏览器不支持自动防息屏（需 HTTPS 环境）');
@@ -612,11 +937,17 @@
   }
 
   document.addEventListener('visibilitychange', async () => {
-    if (document.visibilityState === 'visible' && state.wakeLockWanted && !state.wakeLock && 'wakeLock' in navigator) {
-      try {
-        state.wakeLock = await navigator.wakeLock.request('screen');
+    if (document.visibilityState === 'visible') {
+      if (state.isPlaying) {
+        syncRemainingFromClock();
         renderRecite();
-      } catch {}
+      }
+      if (state.wakeLockWanted && !state.wakeLock && 'wakeLock' in navigator) {
+        try {
+          state.wakeLock = await navigator.wakeLock.request('screen');
+          renderRecite();
+        } catch {}
+      }
     }
   });
 
@@ -690,6 +1021,61 @@
       });
     });
 
+    // Engine & Cloud TTS Settings
+    document.querySelectorAll('[data-engine]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const eng = btn.dataset.engine;
+        if (state.settings.audioEngine === eng) return;
+        if (state.isPlaying) stopRecite(true);
+        syncSettingsPatch({ audioEngine: eng });
+        renderRecite();
+        showToast(eng === 'bg_audio' ? '已切换为锁屏音频模式（支持后台与锁屏连播）' : '已切换为系统离线语音模式');
+      });
+    });
+
+    document.querySelectorAll('[data-tts-provider]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const prov = btn.dataset.ttsProvider;
+        if (state.settings.ttsProvider === prov) return;
+        if (BgAudio) BgAudio.clearTrackCache();
+        syncSettingsPatch({ ttsProvider: prov });
+        renderRecite();
+        showToast(prov === 'azure' ? '已切换为微软 Azure 语音，请填写并保存 Key' : '已切换为免费内置音源（免配置）');
+      });
+    });
+
+    const saveAzureBtn = $('save-azure-btn');
+    if (saveAzureBtn) {
+      saveAzureBtn.addEventListener('click', () => {
+        const azureRegion = ($('azure-region-input').value || 'eastasia').trim();
+        const azureKey = ($('azure-key-input').value || '').trim();
+        const azureJpVoice = ($('azure-jp-voice-select').value || 'ja-JP-NanamiNeural').trim();
+        if (BgAudio) BgAudio.clearTrackCache();
+        syncSettingsPatch({ azureRegion, azureKey, azureJpVoice, ttsProvider: 'azure' });
+        renderRecite();
+        showToast(azureKey ? 'Azure 语音配置已保存，可点下方「测试发声」验证' : '已清空 Azure Key（将自动回退免费音源）');
+      });
+    }
+
+    const azureVoiceSel = $('azure-jp-voice-select');
+    if (azureVoiceSel) {
+      azureVoiceSel.addEventListener('change', () => {
+        if (BgAudio) BgAudio.clearTrackCache();
+        syncSettingsPatch({ azureJpVoice: azureVoiceSel.value });
+        showToast(`Azure 日语人声已切换为 ${azureVoiceSel.value}`);
+      });
+    }
+
+    const clearCacheBtn = $('clear-cache-btn');
+    if (clearCacheBtn) {
+      clearCacheBtn.addEventListener('click', async () => {
+        if (!BgAudio) return;
+        await BgAudio.clearCache();
+        await refreshAudioCacheLabel();
+        showToast('已清空本机音频缓存');
+      });
+    }
+
     // Add / Edit word sheet
     $('open-add-btn').addEventListener('click', () => openWordSheet(null));
     $('lexicon-add-btn').addEventListener('click', () => openWordSheet(null));
@@ -719,6 +1105,7 @@
           const idx = state.words.findIndex((w) => w.id === Number(id));
           if (idx >= 0) state.words[idx] = res.word;
           state.categories = res.categories;
+          if (BgAudio) BgAudio.clearTrackCache();
           showToast('词条已更新至数据库');
         } else {
           const res = await API.createWord(body);
@@ -743,6 +1130,7 @@
       const scoped = getScopedWords();
       if (!scoped.length) return;
       Speech.cancel(true);
+      if (BgAudio && !state.isPlaying) BgAudio.stop(false);
       setStudyHighlight(null);
       state.studyIndex = (state.studyIndex - 1 + scoped.length) % scoped.length;
       renderStudy();
@@ -752,6 +1140,7 @@
       const scoped = getScopedWords();
       if (!scoped.length) return;
       Speech.cancel(true);
+      if (BgAudio && !state.isPlaying) BgAudio.stop(false);
       setStudyHighlight(null);
       state.studyIndex = (state.studyIndex + 1) % scoped.length;
       renderStudy();
@@ -761,6 +1150,7 @@
       const scoped = getScopedWords();
       if (scoped.length < 2) return;
       Speech.cancel(true);
+      if (BgAudio && !state.isPlaying) BgAudio.stop(false);
       setStudyHighlight(null);
       let next = state.studyIndex;
       while (next === state.studyIndex) {
@@ -801,6 +1191,7 @@
         const dy = e.changedTouches[0].clientY - touchStartY;
         if (Math.abs(dx) > 54 && Math.abs(dx) > Math.abs(dy) * 1.4) {
           Speech.cancel(true);
+          if (BgAudio && !state.isPlaying) BgAudio.stop(false);
           setStudyHighlight(null);
           state.studyIndex =
             dx < 0 ? (state.studyIndex + 1) % scoped.length : (state.studyIndex - 1 + scoped.length) % scoped.length;
@@ -920,6 +1311,9 @@
       btn.addEventListener('click', () => {
         const min = Number(btn.dataset.min);
         state.remainingSec = min * 60;
+        if (state.isPlaying) {
+          state.timerEndTs = Date.now() + state.remainingSec * 1000;
+        }
         syncSettingsPatch({ durationMin: min });
         renderRecite();
         showToast(`定时已设为 ${min === 60 ? '1 小时' : min + ' 分钟'}`);
@@ -930,6 +1324,10 @@
       btn.addEventListener('click', () => {
         const rate = Number(btn.dataset.rate);
         syncSettingsPatch({ rate });
+        if (BgAudio) {
+          BgAudio.setPlaybackRate(rate);
+          BgAudio.clearTrackCache();
+        }
         renderRecite();
         showToast(`语速已调整为 ${rate}x`);
       });
@@ -939,6 +1337,7 @@
       btn.addEventListener('click', () => {
         const sec = Number(btn.dataset.pause);
         syncSettingsPatch({ langPauseSec: sec });
+        if (BgAudio) BgAudio.clearTrackCache();
         renderRecite();
         showToast(`语种间隔已设为 ${sec.toFixed(1)} 秒`);
       });
@@ -968,6 +1367,9 @@
 
     $('reset-timer-btn').addEventListener('click', () => {
       state.remainingSec = state.settings.durationMin * 60;
+      if (state.isPlaying) {
+        state.timerEndTs = Date.now() + state.remainingSec * 1000;
+      }
       renderRecite();
       showToast('倒计时已重置');
     });
@@ -976,6 +1378,13 @@
     $('lexicon-search').addEventListener('input', renderLexicon);
 
     $('word-list').addEventListener('click', async (e) => {
+      const speakJpBtn = e.target.closest('[data-speak-jp-id]');
+      if (speakJpBtn) {
+        e.stopPropagation();
+        lexiconSpeakJp(Number(speakJpBtn.dataset.speakJpId));
+        return;
+      }
+
       const editBtn = e.target.closest('[data-edit-id]');
       if (editBtn) {
         e.stopPropagation();
@@ -1013,6 +1422,289 @@
           state.studyIndex = idx;
           switchTab('study');
         }
+      }
+    });
+
+    // Tap JP card in Recite mode when paused to pronounce via kana
+    $('recite-row-jp').addEventListener('click', async () => {
+      if (state.isPlaying) return;
+      const word = getCurrentReciteWord();
+      if (!word || (!(word.jp && word.jp.trim()) && !(word.kana && word.kana.trim()))) return;
+      if (isBgAudioMode()) BgAudio.unlockSync();
+      else Speech.wakeAudioRoute();
+      const sid = Speech.cancel();
+      state.activeLang = 'jp';
+      renderRecite();
+      await speakPhraseWithActiveEngine(word.jp, 'ja-JP', word.kana || '');
+      if (sid === Speech.getSessionId()) {
+        state.activeLang = null;
+        renderRecite();
+      }
+    });
+
+    // ---------- Excel Import Modal ----------
+    function splitInlineJpKanaOptional(jpRaw) {
+      const jp = String(jpRaw || '').trim();
+      if (!jp) return ['', ''];
+      const KANA_RE = /^[ぁ-んァ-ヶー・\s⓪①②③④⑤⑥⑦⑧⑨〇]+$/;
+      const lines = jp.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      if (lines.length === 2 && KANA_RE.test(lines[1]) && !KANA_RE.test(lines[0])) {
+        return [lines[0], lines[1]];
+      }
+      const m = jp.match(/^([^（()）\/・、\n]+?)（([ぁ-んァ-ヶー・〇⓪①②③④⑤⑥⑦⑧⑨]+)）$/);
+      if (m) return [m[1].trim(), m[2].trim()];
+      return [jp, ''];
+    }
+
+    function getSelectedExcelItems() {
+      const ex = state.excel;
+      if (!ex.sheets.length) return [];
+
+      const sheetIndexes = ex.selectedSheet === '__ALL__'
+        ? ex.sheets.map((_, idx) => idx)
+        : [Math.max(0, Math.min(ex.sheets.length - 1, Number(ex.selectedSheet) || 0))];
+
+      const allItems = [];
+      for (const sIdx of sheetIndexes) {
+        const sheet = ex.sheets[sIdx];
+        if (!sheet) continue;
+        const catOverride = ($('excel-category-input').value || '').trim();
+        const defaultCat = ex.selectedSheet === '__ALL__'
+          ? (sheet.name || catOverride || 'Excel导入')
+          : (catOverride || sheet.name || 'Excel导入');
+
+        let useHasHeader = ex.hasHeader;
+        let useHeaderIdx = ex.headerRowIndex;
+        let useColMap = ex.colMap;
+
+        if (ex.selectedSheet === '__ALL__' && sIdx !== 0) {
+          const detected = Excel.detectColumns(sheet.rows);
+          useHasHeader = detected.hasHeader;
+          useHeaderIdx = detected.headerRowIndex;
+          useColMap = detected.colMap;
+        }
+
+        const built = Excel.buildItemsFromRows(sheet.rows, {
+          hasHeader: useHasHeader,
+          headerRowIndex: useHeaderIdx,
+          colMap: useColMap,
+          defaultCategory: defaultCat,
+          strictRaw: ex.strictRaw
+        });
+
+        for (const item of built) {
+          if (!ex.strictRaw && !item.kana && item.jp) {
+            const [cleanJp, extractedKana] = splitInlineJpKanaOptional(item.jp);
+            item.jp = cleanJp;
+            item.kana = extractedKana;
+          }
+          allItems.push(item);
+        }
+      }
+      return allItems;
+    }
+
+    function populateExcelColSelects(headers, colMap) {
+      const fields = [
+        { id: 'map-jp', key: 'jp', noneLabel: '（不导入）' },
+        { id: 'map-kana', key: 'kana', noneLabel: '（无单独假名列）' },
+        { id: 'map-zh', key: 'zh', noneLabel: '（不导入）' },
+        { id: 'map-en', key: 'en', noneLabel: '（不导入）' },
+        { id: 'map-note', key: 'note', noneLabel: '（无备注列）' },
+        { id: 'map-cat', key: 'category', noneLabel: '（使用上方默认分类）' }
+      ];
+
+      fields.forEach((f) => {
+        const sel = $(f.id);
+        if (!sel) return;
+        let opts = `<option value="-1">${f.noneLabel}</option>`;
+        headers.forEach((h) => {
+          opts += `<option value="${h.index}">${escapeHtml(h.label)}</option>`;
+        });
+        sel.innerHTML = opts;
+        const val = colMap[f.key] !== undefined ? colMap[f.key] : -1;
+        sel.value = String(val);
+      });
+    }
+
+    function renderExcelPreview() {
+      const items = getSelectedExcelItems();
+      const summaryEl = $('excel-summary-bar');
+      const tbody = $('excel-preview-tbody');
+      const confirmBtn = $('confirm-excel-btn');
+
+      summaryEl.textContent = `共解析出 ${items.length} 条有效词条（预览前 ${Math.min(5, items.length)} 条，将严格按此显示到界面）：`;
+      confirmBtn.textContent = state.excel.mode === 'replace'
+        ? `清空旧词库并严格导入 ${items.length} 条`
+        : `确认追加合并 ${items.length} 条词条`;
+      confirmBtn.disabled = items.length === 0;
+
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-tertiary);">当前列映射下没有可导入的数据，请调整上方列选择</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = items
+        .slice(0, 5)
+        .map(
+          (w) => `
+          <tr>
+            <td>${escapeHtml(w.jp || '—')}</td>
+            <td>${escapeHtml(w.kana || '—')}</td>
+            <td>${escapeHtml(w.zh || '—')}</td>
+            <td>${escapeHtml(w.en || '—')}</td>
+          </tr>
+        `
+        )
+        .join('');
+    }
+
+    function applyExcelSheetSelection() {
+      const ex = state.excel;
+      if (!ex.sheets.length) return;
+      const idx = ex.selectedSheet === '__ALL__' ? 0 : Math.max(0, Math.min(ex.sheets.length - 1, Number(ex.selectedSheet) || 0));
+      const sheet = ex.sheets[idx];
+      const detected = Excel.detectColumns(sheet.rows);
+      ex.hasHeader = detected.hasHeader;
+      ex.headerRowIndex = detected.headerRowIndex;
+      ex.colMap = { ...detected.colMap };
+
+      $('excel-has-header').checked = ex.hasHeader;
+      $('excel-strict-raw').checked = ex.strictRaw;
+      $('excel-category-input').value = ex.selectedSheet === '__ALL__'
+        ? ''
+        : (sheet.name || ex.fileName.replace(/\.[^.]+$/, '') || 'Excel导入');
+
+      populateExcelColSelects(detected.headers, ex.colMap);
+      renderExcelPreview();
+    }
+
+    function openExcelSheet() {
+      $('excel-sheet').classList.add('open');
+    }
+
+    function closeExcelSheet() {
+      $('excel-sheet').classList.remove('open');
+    }
+
+    $('open-excel-btn').addEventListener('click', openExcelSheet);
+    $('close-excel-sheet').addEventListener('click', closeExcelSheet);
+    $('excel-sheet').addEventListener('click', (e) => {
+      if (e.target === $('excel-sheet')) closeExcelSheet();
+    });
+
+    $('excel-dropzone').addEventListener('click', () => $('excel-file-input').click());
+
+    $('excel-file-input').addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      $('excel-file-label').textContent = `正在解析：${file.name}…`;
+      try {
+        const parsed = await Excel.parseFile(file);
+        state.excel.fileName = file.name;
+        state.excel.sheets = parsed.sheets;
+        state.excel.selectedSheet = '0';
+        state.excel.strictRaw = true;
+
+        $('excel-file-label').textContent = `已加载：${file.name}（${parsed.sheets.length} 个工作表，点击可重选）`;
+
+        const sheetSel = $('excel-sheet-select');
+        let sheetOpts = '';
+        if (parsed.sheets.length > 1) {
+          const totalRows = parsed.sheets.reduce((acc, s) => acc + s.rows.length, 0);
+          sheetOpts += `<option value="__ALL__">全部工作表（共 ${parsed.sheets.length} 个，约 ${totalRows} 行）</option>`;
+        }
+        parsed.sheets.forEach((s, i) => {
+          sheetOpts += `<option value="${i}">${escapeHtml(s.name)}（${s.rows.length} 行）</option>`;
+        });
+        sheetSel.innerHTML = sheetOpts;
+        sheetSel.value = '0';
+
+        $('excel-config-area').classList.add('show');
+        applyExcelSheetSelection();
+      } catch (err) {
+        $('excel-file-label').textContent = '点击选择 Excel 文档（.xlsx / .xls / .csv）';
+        $('excel-config-area').classList.remove('show');
+        showToast('解析失败：' + err.message, 4200);
+      }
+      e.target.value = '';
+    });
+
+    $('excel-sheet-select').addEventListener('change', (e) => {
+      state.excel.selectedSheet = e.target.value;
+      applyExcelSheetSelection();
+    });
+
+    document.querySelectorAll('[data-excel-mode]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.excel.mode = btn.dataset.excelMode;
+        document.querySelectorAll('[data-excel-mode]').forEach((b) => {
+          b.classList.toggle('active', b.dataset.excelMode === state.excel.mode);
+        });
+        renderExcelPreview();
+      });
+    });
+
+    [
+      { id: 'map-jp', key: 'jp' },
+      { id: 'map-kana', key: 'kana' },
+      { id: 'map-zh', key: 'zh' },
+      { id: 'map-en', key: 'en' },
+      { id: 'map-note', key: 'note' },
+      { id: 'map-cat', key: 'category' }
+    ].forEach((f) => {
+      $(f.id).addEventListener('change', (e) => {
+        state.excel.colMap[f.key] = Number(e.target.value);
+        renderExcelPreview();
+      });
+    });
+
+    $('excel-has-header').addEventListener('change', (e) => {
+      state.excel.hasHeader = e.target.checked;
+      renderExcelPreview();
+    });
+
+    $('excel-strict-raw').addEventListener('change', (e) => {
+      state.excel.strictRaw = e.target.checked;
+      renderExcelPreview();
+    });
+
+    $('excel-category-input').addEventListener('input', renderExcelPreview);
+
+    $('confirm-excel-btn').addEventListener('click', async () => {
+      const items = getSelectedExcelItems();
+      if (!items.length) {
+        showToast('没有可导入的有效词条');
+        return;
+      }
+      const isReplace = state.excel.mode === 'replace';
+      if (isReplace && !confirm(`确定清空现有词库，并严格按此 Excel 文档导入 ${items.length} 条词条吗？`)) {
+        return;
+      }
+      const btn = $('confirm-excel-btn');
+      btn.disabled = true;
+      btn.textContent = '正在写入词库…';
+      try {
+        const res = await API.importRows(items, isReplace);
+        state.words = res.words;
+        state.categories = res.categories;
+        state.selectedCategory = '全部';
+        state.studyIndex = 0;
+        if (BgAudio) BgAudio.clearTrackCache();
+        rebuildPlayOrder(true);
+        closeExcelSheet();
+        renderAll();
+        showToast(
+          isReplace
+            ? `已严格按 Excel 替换词库，共 ${res.stats.added} 条`
+            : `Excel 导入完成：新增 ${res.stats.added} 条，更新 ${res.stats.updated} 条，跳过重复 ${res.stats.skipped} 条`,
+          3800
+        );
+      } catch (err) {
+        showToast('导入失败：' + err.message, 4000);
+      } finally {
+        btn.disabled = false;
+        renderExcelPreview();
       }
     });
 
@@ -1084,6 +1776,7 @@
           state.words = res.words;
           state.categories = res.categories;
           state.scratch = res.scratch;
+          if (BgAudio) BgAudio.clearTrackCache();
           rebuildPlayOrder(true);
           renderAll();
           showToast(`备份恢复成功：新增 ${res.stats.added} 条，更新 ${res.stats.updated} 条`);
@@ -1110,6 +1803,7 @@
       populateJpVoiceSelect();
       rebuildPlayOrder(true);
       renderAll();
+      refreshAudioCacheLabel();
     } catch (err) {
       $('header-subtitle').textContent = '数据库连接失败';
       showToast('无法连接后端数据库 API：' + err.message, 4500);

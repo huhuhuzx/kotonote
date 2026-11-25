@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="言笺 KotoNote" />
   <meta name="theme-color" content="#F2F2F7" id="theme-color-meta" />
-  <title>言笺 KotoNote · 数据库版三语背词</title>
-  <link rel="stylesheet" href="/css/style.css?v=20261122b" />
+  <title>言笺 KotoNote · 数据库版三语背词 (支持锁屏后台播放)</title>
+  <link rel="stylesheet" href="/css/style.css?v=20261125v4" />
 </head>
 <body>
   <div class="app-shell">
@@ -29,7 +29,7 @@
 
     <!-- In-app browser warning -->
     <div class="env-banner" id="inapp-banner">
-      ⚠️ 检测到你在微信/QQ 等内置浏览器中打开，iPhone 内置浏览器通常会禁用网页朗读。请点击右上角 <strong>···</strong> 选择「在默认浏览器（Safari）中打开」。
+      ⚠️ 检测到你在微信/QQ 等内置浏览器中打开，建议点击右上角 <strong>···</strong> 选择「在默认浏览器（Safari）中打开」，锁屏与后台播报体验最稳定。
     </div>
 
     <!-- Main Scroll Content -->
@@ -147,6 +147,10 @@
             </button>
           </div>
 
+          <div class="bg-engine-banner" id="recite-engine-banner">
+            <span id="recite-engine-status-text">🔒 锁屏音频模式 · 支持切后台与锁屏连播</span>
+          </div>
+
           <div class="order-indicator">
             <span class="order-step" data-step="jp">1. 日语 ×2</span>
             <span>→</span>
@@ -163,6 +167,7 @@
               </div>
               <div class="recite-jp-text" id="recite-jp-text"></div>
               <div class="recite-kana-text" id="recite-kana-text"></div>
+              <div class="recite-kana-speech-pill" id="recite-kana-speech-pill"></div>
             </div>
 
             <div class="recite-row" data-lang="zh" id="recite-row-zh">
@@ -191,6 +196,59 @@
         <div class="card">
           <div class="setting-row">
             <div>
+              <div class="setting-label">播放引擎</div>
+              <div class="setting-sub">锁屏音频走系统媒体通道，切后台不中断</div>
+            </div>
+            <div class="segmented">
+              <button class="seg-btn active" data-engine="bg_audio">🔒 锁屏音频</button>
+              <button class="seg-btn" data-engine="system">📱 系统语音</button>
+            </div>
+          </div>
+
+          <div class="setting-row" id="tts-provider-row">
+            <div>
+              <div class="setting-label">云端音源</div>
+              <div class="setting-sub">免费免配置，或接入微软 Azure 神经网络</div>
+            </div>
+            <div class="segmented">
+              <button class="seg-btn active" data-tts-provider="free">免费内置</button>
+              <button class="seg-btn" data-tts-provider="azure">Azure 高音质</button>
+            </div>
+          </div>
+
+          <div class="azure-config-box" id="azure-config-box">
+            <div class="azure-config-title">微软 Azure 语音配置（每月 50 万字符免费）</div>
+            <div class="azure-grid">
+              <div>
+                <label class="azure-mini-label" for="azure-region-input">区域 Region</label>
+                <input type="text" class="azure-mini-input" id="azure-region-input" placeholder="eastasia" value="eastasia" />
+              </div>
+              <div>
+                <label class="azure-mini-label" for="azure-jp-voice-select">日语人声</label>
+                <select id="azure-jp-voice-select" class="azure-mini-input">
+                  <option value="ja-JP-NanamiNeural">Nanami (自然女声)</option>
+                  <option value="ja-JP-KeitaNeural">Keita (自然男声)</option>
+                  <option value="ja-JP-AoiNeural">Aoi (清亮女声)</option>
+                  <option value="ja-JP-ShioriNeural">Shiori (温柔女声)</option>
+                </select>
+              </div>
+            </div>
+            <div class="azure-key-row">
+              <input type="password" class="azure-mini-input" id="azure-key-input" placeholder="输入 Azure Speech Key（保存在云端设置）" />
+              <button type="button" class="chip-btn active" id="save-azure-btn">保存</button>
+            </div>
+          </div>
+
+          <div class="setting-row" id="audio-cache-row">
+            <div>
+              <div class="setting-label">本地音频缓存</div>
+              <div class="setting-sub" id="audio-cache-sub">已缓存 0 条语音（听过的词断网也能锁屏播）</div>
+            </div>
+            <button class="chip-btn" id="clear-cache-btn">🗑 清空缓存</button>
+          </div>
+
+          <div class="setting-row">
+            <div>
               <div class="setting-label">播放顺序</div>
               <div class="setting-sub">顺序循环或智能洗牌乱序</div>
             </div>
@@ -203,7 +261,7 @@
           <div class="setting-row">
             <div>
               <div class="setting-label">播放时长</div>
-              <div class="setting-sub">倒计时归零自动停止</div>
+              <div class="setting-sub">倒计时归零自动停止（锁屏期间依然准确计时）</div>
             </div>
             <div class="chip-group" id="duration-chips">
               <button class="chip-btn active" data-min="15">15min</button>
@@ -237,10 +295,10 @@
             </div>
           </div>
 
-          <div class="setting-row">
+          <div class="setting-row" id="system-voice-row">
             <div>
-              <div class="setting-label">日语发音人</div>
-              <div class="setting-sub">自动优选自然神经网络语音</div>
+              <div class="setting-label">系统日语发音人</div>
+              <div class="setting-sub">仅「系统语音」模式生效</div>
             </div>
             <select id="jp-voice-select" class="voice-select" aria-label="选择日语发音人">
               <option value="">自动优选（最自然）</option>
@@ -257,13 +315,14 @@
 
           <div class="setting-row">
             <div>
-              <div class="setting-label">iPhone 语音自检</div>
-              <div class="setting-sub">请确保关闭静音开关并在 Safari 打开</div>
+              <div class="setting-label">语音通道自检</div>
+              <div class="setting-sub">测试当前引擎的日 / 中 / 英三语发声</div>
             </div>
             <button class="chip-btn" id="test-voice-btn">🔊 测试发声</button>
           </div>
-          <div class="voice-tip-box">
-            <strong>💡 让 iPhone 日语发音更自然：</strong>前往 iPhone <strong>设置 → 辅助功能 → 朗读内容 → 声音 → 日语</strong>，下载 <strong>Kyoko（优化版）</strong>、<strong>Otoya（优化版）</strong> 或 <strong>Hattori</strong> 后重开 Safari，本软件会自动优先使用高音质自然人声。
+
+          <div class="voice-tip-box" id="voice-tip-box">
+            <strong>🔒 锁屏后台播放说明：</strong>开启「锁屏音频」模式后，每个词会无缝合成为连续音频并预加载下一词，支持在 iPhone / 安卓 <strong>切后台、锁屏、蓝牙耳机切歌</strong>；已播过的词会自动缓存在手机本地，二次复习零延迟。
           </div>
         </div>
       </section>
@@ -283,7 +342,8 @@
         <div class="cat-strip" id="lexicon-cat-strip"></div>
 
         <div class="lexicon-tools">
-          <button class="tool-btn" id="open-batch-btn">📥 批量导入</button>
+          <button class="tool-btn primary-tool" id="open-excel-btn">📗 导入 Excel 文档 (.xlsx / .xls / .csv)</button>
+          <button class="tool-btn" id="open-batch-btn">📋 粘贴文本导入</button>
           <button class="tool-btn" id="export-tsv-btn">📊 导出表格</button>
           <button class="tool-btn" id="export-json-btn">📤 备份JSON</button>
           <button class="tool-btn" id="import-json-btn">🔄 恢复备份</button>
@@ -390,10 +450,108 @@
     </div>
   </div>
 
+  <!-- Excel Import Bottom Sheet -->
+  <div class="sheet-backdrop" id="excel-sheet">
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title">导入 Excel 词库</div>
+        <button class="ghost-btn" id="close-excel-sheet">关闭</button>
+      </div>
+
+      <input
+        type="file"
+        id="excel-file-input"
+        accept=".xlsx,.xls,.csv,.tsv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+        style="display:none"
+      />
+      <div class="excel-dropzone" id="excel-dropzone">
+        <div class="excel-dropzone-icon">📗</div>
+        <div class="excel-dropzone-title" id="excel-file-label">点击选择 Excel 文档（.xlsx / .xls / .csv）</div>
+        <div class="excel-dropzone-sub">支持多工作表 · 自动识别日中英与假名列 · 严格按文档显示</div>
+      </div>
+
+      <div class="excel-config-area" id="excel-config-area">
+        <div class="form-group">
+          <label class="form-label" for="excel-sheet-select">选择工作表 (Sheet)</label>
+          <select id="excel-sheet-select" class="form-input"></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">导入方式</label>
+          <div class="segmented" style="width:100%;display:grid;grid-template-columns:1fr 1fr;">
+            <button type="button" class="seg-btn active" data-excel-mode="append">追加合并到现有词库</button>
+            <button type="button" class="seg-btn" data-excel-mode="replace">清空旧库并按文档替换</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="excel-category-input">默认归属分类（文档无分类列时使用）</label>
+          <input type="text" class="form-input" id="excel-category-input" list="category-datalist" placeholder="默认使用工作表名" />
+        </div>
+
+        <div class="excel-map-grid">
+          <div class="excel-map-cell">
+            <label for="map-jp">日语列 (日本語)</label>
+            <select id="map-jp" class="excel-map-select"></select>
+          </div>
+          <div class="excel-map-cell">
+            <label for="map-kana">假名列（读音 · 可选）</label>
+            <select id="map-kana" class="excel-map-select"></select>
+          </div>
+          <div class="excel-map-cell">
+            <label for="map-zh">中文列</label>
+            <select id="map-zh" class="excel-map-select"></select>
+          </div>
+          <div class="excel-map-cell">
+            <label for="map-en">英文列 (English)</label>
+            <select id="map-en" class="excel-map-select"></select>
+          </div>
+          <div class="excel-map-cell">
+            <label for="map-note">备注 / 便签列（可选）</label>
+            <select id="map-note" class="excel-map-select"></select>
+          </div>
+          <div class="excel-map-cell">
+            <label for="map-cat">分类列（可选）</label>
+            <select id="map-cat" class="excel-map-select"></select>
+          </div>
+        </div>
+
+        <label class="check-row">
+          <input type="checkbox" id="excel-has-header" checked />
+          <span>首行是表头（自动跳过表头行）</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="excel-strict-raw" checked />
+          <span>严格按文档日中英原文显示（不改写/不拆分单元格）</span>
+        </label>
+
+        <div class="excel-summary-bar" id="excel-summary-bar"></div>
+        <div class="excel-preview-wrap">
+          <table class="excel-preview-table">
+            <thead>
+              <tr>
+                <th>日语</th>
+                <th>假名</th>
+                <th>中文</th>
+                <th>英文</th>
+              </tr>
+            </thead>
+            <tbody id="excel-preview-tbody"></tbody>
+          </table>
+        </div>
+
+        <button type="button" class="primary-block-btn" id="confirm-excel-btn">确认导入词库</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
-  <script src="/js/api.js?v=20261122b"></script>
-  <script src="/js/speech.js?v=20261122b"></script>
-  <script src="/js/app.js?v=20261122b"></script>
+  <script src="/js/api.js?v=20261125v4"></script>
+  <script src="/js/excel.js?v=20261125v4"></script>
+  <script src="/js/speech.js?v=20261125v4"></script>
+  <script src="/js/bg_audio.js?v=20261125v4"></script>
+  <script src="/js/app.js?v=20261125v4"></script>
 </body>
 </html>

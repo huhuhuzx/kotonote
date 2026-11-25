@@ -34,6 +34,7 @@ window.KotoAPI = (() => {
   }
 
   return {
+    endpoint: ENDPOINT,
     exportJsonUrl: `${ENDPOINT}?action=export_json`,
     exportTsvUrl: `${ENDPOINT}?action=export_tsv`,
     bootstrap: () => call('bootstrap'),
@@ -41,12 +42,14 @@ window.KotoAPI = (() => {
     updateWord: (id, body) => call('update_word', { id, ...body }),
     deleteWord: (id) => call('delete_word', { id }),
     batchImport: (body) => call('batch_import', body),
+    importRows: (items, replace = false) => call('import_rows', { items, replace }),
     addWordEntry: (wordId, content) => call('add_word_entry', { wordId, content }),
     deleteWordEntry: (wordId, entryId) => call('delete_word_entry', { wordId, entryId }),
     saveScratch: (content) => call('save_scratch', { content }),
     addScratchEntry: (content) => call('add_scratch_entry', { content }),
     deleteScratchEntry: (entryId) => call('delete_scratch_entry', { entryId }),
     updateSettings: (patch) => call('update_settings', patch),
-    importJson: (payload, replace = false) => call('import_json', { payload, replace })
+    importJson: (payload, replace = false) => call('import_json', { payload, replace }),
+    fetchTts: (payload) => call('tts', payload)
   };
 })();
